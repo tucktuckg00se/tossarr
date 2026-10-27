@@ -1,36 +1,50 @@
-# Swiparr — Implementation Plan
+# Tossarr — Implementation Plan
 
 Companion to `PRD.md`. Single-repo TypeScript monorepo (one package), two build targets: Fastify API server and Vite-built React frontend served as its static assets.
 
 ## 1. Repository Layout
 
 ```
-swiparr/
+tossarr/
 ├── PRD.md                    # product requirements (lives in the repo)
 ├── PLAN.md                   # this implementation plan (lives in the repo)
 ├── package.json              # single package; scripts for dev/build/test
-├── Dockerfile                # multi-stage: web build → node:20-alpine runtime
-├── docker-compose.dev.yml    # local dev: swiparr + mock sonarr/radarr fixtures
-├── swiparr.xml               # local Unraid Docker template (not a CA submission)
+├── Dockerfile                # multi-stage: web build → node:22-alpine runtime
+├── docker-compose.dev.yml    # local dev: tossarr + mock sonarr/radarr fixtures
+├── tossarr.xml               # local Unraid Docker template (not a CA submission)
 ├── .env.example
 ├── README.md                 # docker run instructions, env vars, setup guide
 ├── server/
 │   ├── src/
-│   │   ├── index.ts          # bootstrap: config → db → sync → fastify listen
+│   │   ├── index.ts          # bootstrap: config → db → sync queue → fastify listen
+│   │   ├── app.ts            # buildApp: routes + static serving + SPA fallback
 │   │   ├── config.ts         # env + /config/settings.json load/save (env wins)
+│   │   ├── context.ts        # AppContext {db, config, triggerSync} injected into routes
 │   │   ├── db.ts             # better-sqlite3 init, migrations, queries
+│   │   ├── types.ts          # shared types incl. MediaClient interface
+│   │   ├── items.ts          # toItem(): row → API Item (posterUrl via proxy)
+│   │   ├── util.ts           # errorMessage, clampInt, maskApiKey/isMaskedKey
+│   │   ├── svg.ts            # posterSvg() generated placeholder
+│   │   ├── sync.ts           # fetch → normalize → upsert/prune per source
+│   │   ├── removals.ts       # confirmRemoval: upstream delete + tombstone
 │   │   ├── clients/
-│   │   │   ├── sonarr.ts     # GET /api/v3/series (+ poster path helper)
-│   │   │   └── radarr.ts     # GET /api/v3/movie?hasFile=true
-│   │   ├── sync.ts           # fetch → normalize → upsert/prune; interval scheduler
+│   │   │   ├── index.ts      # createClient({kind,url,apiKey}) factory
+│   │   │   ├── http.ts       # HttpClient: X-Api-Key auth, timeout, 404=success deletes
+│   │   │   ├── sonarr.ts     # GET /api/v3/series, DELETE /api/v3/series/{id}
+│   │   │   └── radarr.ts     # GET /api/v3/movie?hasFile=true, DELETE /api/v3/movie/{id}
 │   │   ├── mock/             # fixture-backed fake Sonarr/Radarr API (dev only)
+│   │   │   ├── fixtures.ts   # 8 shows + 10 movies
+│   │   │   ├── sonarr.ts     # :8989, key tossarr-mock-sonarr-key, /__mock/state
+│   │   │   ├── radarr.ts     # :8787, key tossarr-mock-radarr-key, /__mock/state
+│   │   │   └── server.ts     # runs both (npm run dev:mocks)
 │   │   └── routes/
 │   │       ├── settings.ts   # GET/PUT /api/settings
 │   │       ├── sources.ts    # GET/POST/PUT/DELETE /api/sources, POST /api/sources/test
 │   │       ├── library.ts    # GET /api/library
-│   │       ├── decisions.ts  # POST /api/decisions, undo, confirm (+confirm-all), DELETE /api/decisions/:itemId
+│   │       ├── decisions.ts  # POST /api/decisions/:itemId, undo, confirm (+confirm-all), reset, DELETE /api/decisions/:itemId
 │   │       ├── browse.ts     # GET /api/browse
-│   │       └── posters.ts    # GET /api/posters/:sourceId/:extId (proxy + fallback)
+│   │       ├── posters.ts    # GET /api/posters/:sourceId/:extId (proxy + fallback)
+│   │       └── sync.ts       # POST /api/sync (manual resync, background)
 │   └── test/                 # vitest: sync upsert, decision logic, route tests (mock API)
 ├── web/
 │   ├── index.html
@@ -48,7 +62,7 @@ swiparr/
 │           └── CaughtUp.tsx  # stats + resync + reset
 ```
 
-## 2. Data Model (SQLite at `/config/swiparr.db`)
+## 2. Data Model (SQLite at `/config/tossarr.db`)
 
 ```sql
 CREATE TABLE sources(
@@ -99,13 +113,13 @@ Decision undo is handled in the API layer: `POST /api/decisions/undo` pops the m
 | `PUT /api/sources/:id` | update name/key/enabled (masked key = unchanged) |
 | `DELETE /api/sources/:id` | remove source + its items and decisions |
 | `GET /api/library?filter=all\|movie\|show&limit=20` | next deck batch: undecided + kept items past their reappear due date, random order → `{items:[Item], totalPending}` |
-| `POST /api/decisions` | `{itemId, decision:'keep'\|'remove'}` — keep sets `next_due`; remove inserts a pending row → `{ok, remaining}` |
-| `POST /api/decisions/undo` | → `{undone: Item \| null}` |
+| `POST /api/decisions/:itemId` | body `{decision:'keep'\|'remove'}` — keep sets `next_due`; remove inserts a pending row → `{itemId, decision, decidedAt, nextDue?}` |
+| `POST /api/decisions/undo` | → `{item: Item}` (404 when nothing to undo) |
 | `POST /api/decisions/:itemId/confirm` | confirm a pending removal → upstream delete with `deleteFiles=true`, mark confirmed; upstream failure leaves it pending and surfaces the error |
 | `POST /api/decisions/confirm-all` | confirm every pending removal (sequential, per-item results) → `{confirmed, failed:[{itemId,title,error?}]}` |
 | `DELETE /api/decisions/:itemId` | restore a **pending** item (clears decision); confirmed deletions are irreversible |
 | `GET /api/browse?list=kept\|pending\|removed&limit=50&offset=0` | browse lists → `{items:[Item]}` |
-| `POST /api/sync` | manual resync → `{ok, counts:{added, updated, pruned}}` |
+| `POST /api/sync` | manual resync of all enabled sources, runs in background → `{ok:true}` (poll `/api/sources` for `lastSync`) |
 | `POST /api/decisions/reset` | clear all decisions (caught-up screen) |
 | `GET /api/posters/:sourceId/:extId` | image proxy → bytes + `Cache-Control: public, max-age=86400`; on upstream failure → generated SVG placeholder |
 
@@ -137,31 +151,31 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 
 ## 6. Docker & Unraid Packaging
 
-- **Dockerfile:** stage 1 `node:20-alpine` builds web (`vite build`) and server (esbuild/tsc) → stage 2 copies `server/dist`, `server/public`, `package.json` (prod deps only), `USER node`, `EXPOSE 8901`, `HEALTHCHECK CMD wget -qO- http://localhost:8901/api/health`.
-- **swiparr.xml** template variables: `SWIPARR_PORT` (8901), `SYNC_INTERVAL_HOURS`, `KEEP_REAPPEAR_DAYS`; container path `/config` → `<Config>/swiparr`. Media sources are configured in the web UI after first boot.
-- **README:** `docker run -d --name swiparr -p 8901:8901 -v /path/to/appdata/swiparr:/config ghcr.io/tucker/swiparr`, plus the Unraid template install path and a note that Sonarr/Radarr URLs must be reachable from inside Docker (e.g. `http://sonarr:8989` on the same network, or host IP).
+- **Dockerfile:** stage 1 `node:22-alpine` builds web (`vite build`) and server (esbuild/tsc) → stage 2 copies `server/dist`, `server/public`, `package.json` (prod deps only), `USER node`, `EXPOSE 8901`, `HEALTHCHECK CMD wget -qO- http://localhost:8901/api/health`.
+- **tossarr.xml** template variables: `TOSSARR_PORT` (8901), `SYNC_INTERVAL_HOURS`, `KEEP_REAPPEAR_DAYS`; container path `/config` → `<Config>/tossarr`. Media sources are configured in the web UI after first boot.
+- **README:** `docker run -d --name tossarr -p 8901:8901 -v /path/to/appdata/tossarr:/config ghcr.io/tucker/tossarr`, plus the Unraid template install path and a note that Sonarr/Radarr URLs must be reachable from inside Docker (e.g. `http://sonarr:8989` on the same network, or host IP).
 
 ## 7. Milestones & Task Breakdown
 
-**M0 — Scaffold (½ day)**
-- [ ] Move `PRD.md` and `PLAN.md` from the planning folder into the repo root
-- [ ] `git init` + `.gitignore` (node_modules, dist) + initial commit
-- [ ] Init project: package.json, tsconfig, eslint/prettier, vitest
-- [ ] Dockerfile multi-stage + `docker-compose.dev.yml` (app + mock API)
-- [ ] Dev loop working: `npm run dev` runs server (tsx watch) + vite with proxy
+**M0 — Scaffold (½ day)** ✅
+- [x] Move `PRD.md` and `PLAN.md` from the planning folder into the repo root
+- [x] `git init` + `.gitignore` (node_modules, dist) + initial commit
+- [x] Init project: package.json, tsconfig, eslint/prettier, vitest
+- [x] Dockerfile multi-stage + `docker-compose.dev.yml` (app + mock API)
+- [x] Dev loop working: `npm run dev` runs server (tsx watch) + vite with proxy
 
 **M1 — Backend core (1 day)**
-- [ ] `config.ts`: env + /config/settings.json (port, sync interval, reappear days)
-- [ ] `db.ts`: schema + migrations + query helpers (sources, items, decisions)
-- [ ] Sources CRUD API with key masking
-- [ ] Sonarr/Radarr clients with timeout/retry (dispatched per source kind)
-- [ ] `sync.ts`: normalize/upsert/prune + scheduler
-- [ ] Mock fixture servers — one fake Sonarr + one fake Radarr instance, delete endpoints included (call-recording) — so dev/tests exercise multi-source + the confirm flow without real apps
+- [x] `config.ts`: env + /config/settings.json (port, sync interval, reappear days)
+- [x] `db.ts`: schema + migrations + query helpers (sources, items, decisions)
+- [x] Sources CRUD API with key masking
+- [x] Sonarr/Radarr clients (20s timeout; single attempt — no retry implemented)
+- [x] `sync.ts`: normalize/upsert/prune + scheduler (coalescing queue; one sync at a time)
+- [x] Mock fixture servers — one fake Sonarr + one fake Radarr instance, delete endpoints included (call-recording) — so dev/tests exercise multi-source + the confirm flow without real apps
 - [ ] Unit tests: sync upsert/prune, decision CRUD, undo ordering
 
 **M2 — API routes (½ day)**
-- [ ] settings (get/put), sources CRUD + test, library batching, decisions + undo + confirm (+confirm-all) + reset, browse, manual sync, health
-- [ ] Poster proxy with fallback SVG + cache headers
+- [x] settings (get/put), sources CRUD + test, library batching, decisions + undo + confirm (+confirm-all) + reset, browse, manual sync, health
+- [x] Poster proxy with fallback SVG + cache headers
 - [ ] Route tests against mock clients
 
 **M3 — Frontend shell + setup (½ day)**
@@ -187,7 +201,7 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [ ] ARIA labels on swipe controls; focus management
 
 **M7 — Packaging & docs (½ day)**
-- [ ] `swiparr.xml` local Unraid template (import via Add Container; no Community Apps submission)
+- [ ] `tossarr.xml` local Unraid template (import via Add Container; no Community Apps submission)
 - [ ] README: docker run, env vars, Unraid install, troubleshooting (Docker network reachability)
 - [ ] Image build + push (GHCR if confirmed), final manual test on a real Sonarr/Radarr
 
@@ -205,5 +219,5 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 |---|---|
 | Sonarr/Radarr unreachable from Docker network (host vs container DNS) | Setup screen surfaces the exact error; README documents `host.docker.internal`/LAN IP options |
 | Large libraries slow poster loads | Lazy image loading, 20-item deck batches, proxy cache headers, generated fallback |
-| `better-sqlite3` native build on alpine | Prebuilt binaries exist for musl Node 20; verify in M0 Dockerfile stage |
+| `better-sqlite3` native build on alpine | Prebuilt binaries exist for musl Node 22; verify in M0 Dockerfile stage |
 | Accidental destructive behavior | Two-stage removal (pending list + explicit confirm), double-confirm on confirm-all, upstream deletes only via the confirm endpoint, covered by mock tests |

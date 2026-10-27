@@ -1,16 +1,16 @@
-# Swiparr — Product Requirements Document
+# Tossarr — Product Requirements Document
 
 **Status:** Draft v1 · **Date:** 2026-10-27 · **Owner:** tucker
 
 ## 1. Overview
 
-Swiparr is a Dockerized web app for Unraid that turns your Sonarr and Radarr libraries — any number of instances of each — into a Tinder-style swipe deck. It pulls random shows and movies you already own, presents them as poster cards, and lets you swipe right to **keep** or left to send an item to a **pending-removal list**. It's a lightweight curation tool for discovering what's in your library and trimming down what you actually want to watch.
+Tossarr is a Dockerized web app for Unraid that turns your Sonarr and Radarr libraries — any number of instances of each — into a Tinder-style swipe deck. It pulls random shows and movies you already own, presents them as poster cards, and lets you swipe right to **keep** or left to send an item to a **pending-removal list**. It's a lightweight curation tool for discovering what's in your library and trimming down what you actually want to watch.
 
 ## 2. Goals
 
 - **G1 — Fast setup:** Point it at Sonarr and Radarr with API keys; first swipe within ~2 minutes of starting the container.
 - **G2 — Fun, fast swipe UX:** Fluid drag with rotation on phone, tablet, and desktop (touch, mouse, and keyboard).
-- **G3 — Safe by default:** Removal is two-stage. Left-swiping only moves an item to a pending-removal list; nothing becomes final until you explicitly confirm it there. Confirmation permanently deletes the item from Radarr/Sonarr, including media files — the only destructive operation in Swiparr, and it always requires this deliberate step.
+- **G3 — Safe by default:** Removal is two-stage. Left-swiping only moves an item to a pending-removal list; nothing becomes final until you explicitly confirm it there. Confirmation permanently deletes the item from Radarr/Sonarr, including media files — the only destructive operation in Tossarr, and it always requires this deliberate step.
 - **G4 — One container, one volume:** Single Docker image, single `/config` volume, no external services required.
 
 ## 3. Non-Goals (v1)
@@ -49,17 +49,17 @@ Single user running Unraid with Sonarr and Radarr (any number of instances). Pri
 
 ## 7. Technical Requirements
 
-- **Stack:** TypeScript throughout. Node 20 + Fastify backend serving REST API and the built frontend as static assets. React 18 + Vite frontend, no heavy UI framework (custom CSS). `better-sqlite3` for storage.
+- **Stack:** TypeScript throughout. Node 22 + Fastify backend serving REST API and the built frontend as static assets. React 19 + Vite frontend, no heavy UI framework (custom CSS). `better-sqlite3` for storage.
 - **Container:** Multi-stage Dockerfile (build web → copy into server image), non-root user, healthcheck on `/api/health`, default port **8901** (env-overridable).
-- **Config volume:** `/config` holds `settings.json` and `swiparr.db`.
-- **Env vars:** `SWIPARR_PORT`, `SYNC_INTERVAL_HOURS`, `KEEP_REAPPEAR_DAYS`. Media sources are configured in the web UI (stored in `/config`) since their count is variable; env pins take precedence over saved settings where they exist.
-- **Unraid packaging:** A local Docker template file (`swiparr.xml`, importable via Unraid's *Add Container → Import Docker Template*) with variables for port and sync interval (media sources are configured in the web UI after first boot), plus a README with plain `docker run` instructions. **No Community Apps submission** — the template is for local use only; publishing to CA is explicitly out of scope unless requested later.
+- **Config volume:** `/config` holds `settings.json` and `tossarr.db`.
+- **Env vars:** `TOSSARR_PORT`, `SYNC_INTERVAL_HOURS`, `KEEP_REAPPEAR_DAYS`. Media sources are configured in the web UI (stored in `/config`) since their count is variable; env pins take precedence over saved settings where they exist.
+- **Unraid packaging:** A local Docker template file (`tossarr.xml`, importable via Unraid's *Add Container → Import Docker Template*) with variables for port and sync interval (media sources are configured in the web UI after first boot), plus a README with plain `docker run` instructions. **No Community Apps submission** — the template is for local use only; publishing to CA is explicitly out of scope unless requested later.
 
 ## 8. Security & Safety
 
 - No auth — document the trusted-LAN assumption; note reverse-proxy/TLS as user responsibility.
 - API keys are never echoed back in full by any endpoint (masked after first 4 chars).
-- Pending removals are reversible until confirmed; confirmed deletions permanently remove metadata + files from Radarr/Sonarr and cannot be undone in Swiparr. The UI states this explicitly at confirm time (item count + warning), and "confirm all" requires a second confirmation.
+- Pending removals are reversible until confirmed; confirmed deletions permanently remove metadata + files from Radarr/Sonarr and cannot be undone in Tossarr. The UI states this explicitly at confirm time (item count + warning), and "confirm all" requires a second confirmation.
 
 ## 9. Success Criteria
 

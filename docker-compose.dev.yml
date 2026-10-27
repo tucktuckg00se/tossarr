@@ -1,0 +1,34 @@
+# Local dev stack: Tossarr + fake Sonarr/Radarr fixture servers.
+#
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# Then open http://localhost:8901 and add the sources via the setup screen:
+#   - Sonarr:  http://mocks:8989  (host-side: http://localhost:8989), key: tossarr-mock-sonarr-key
+#   - Radarr:  http://mocks:8787  (host-side: http://localhost:8787), key: tossarr-mock-radarr-key
+#
+# For a host-based dev loop instead (no container), run:
+#   npm run dev:mocks   # fake Sonarr/Radarr on :8989 / :8787
+#   npm run dev         # server on :8901 + vite on :5173
+
+services:
+  mocks:
+    build: .
+    image: tossarr-dev
+    command: node server/dist/src/mock/server.js
+    ports:
+      - '8989:8989' # fake Sonarr
+      - '8787:8787' # fake Radarr
+
+  app:
+    build: .
+    image: tossarr-dev
+    depends_on:
+      - mocks
+    environment:
+      TOSSARR_PORT: '8901'
+      SYNC_INTERVAL_HOURS: '6'
+      KEEP_REAPPEAR_DAYS: '30'
+    ports:
+      - '8901:8901'
+    volumes:
+      - ./dev-config:/config
