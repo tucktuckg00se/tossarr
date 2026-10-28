@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "concurrently -k -n server,web \"npm:dev:server\" \"npm:dev:web\"",
+    "dev": "TOSSARR_CONFIG_DIR=\"${TOSSARR_CONFIG_DIR:-./dev-config}\" concurrently -k -n server,web \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "tsx watch server/src/index.ts",
     "dev:web": "vite --config web/vite.config.ts",
     "dev:mocks": "tsx server/src/mock/server.ts",
