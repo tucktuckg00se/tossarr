@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import * as api from '../api';
 import type { Item, LibraryFilter } from '../api';
+import { titleEndsWithYear } from '../title';
 import CaughtUp from './CaughtUp';
 
 interface DeckProps {
@@ -353,7 +354,9 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       <div className="deck-info-top">
         <h1 className="deck-title">{current.title}</h1>
         <p className="deck-subtitle">
-          {current.year !== null && <span>{current.year}</span>}
+          {current.year !== null && !titleEndsWithYear(current.title, current.year) && (
+            <span>{current.year}</span>
+          )}
           <span className="badge badge-type">{current.type === 'show' ? 'Show' : 'Movie'}</span>
           <span>{current.sourceName}</span>
           {meta !== '' && <span className="deck-meta">{meta}</span>}

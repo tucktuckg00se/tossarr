@@ -253,14 +253,14 @@ body {
 
 .scrim-top {
   top: 0;
-  height: 160px;
-  background: linear-gradient(to bottom, rgba(10, 12, 16, 0.75), transparent);
+  height: 180px;
+  background: linear-gradient(to bottom, rgba(10, 12, 16, 0.8), transparent);
 }
 
 .scrim-bottom {
   bottom: 0;
-  height: 200px;
-  background: linear-gradient(to top, rgba(10, 12, 16, 0.8), transparent);
+  height: 240px;
+  background: linear-gradient(to top, rgba(10, 12, 16, 0.85), transparent);
 }
 
 /* Filter toggle overlaid at the top of the deck */
@@ -273,12 +273,20 @@ body {
   z-index: 2;
 }
 
+/* Caption blocks carry their own dimmed, blurred backdrop so text stays
+   readable no matter where the poster's bright content lands. */
+
 .deck-info-top {
   position: absolute;
   top: 3.4rem;
   left: 1.25rem;
   right: 1.25rem;
   pointer-events: none;
+  padding: 0.55rem 0.9rem;
+  background: rgba(10, 12, 16, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
 }
 
 .deck-title {
@@ -290,7 +298,7 @@ body {
 
 .deck-subtitle {
   margin: 0.25rem 0 0;
-  color: #cfd3da;
+  color: var(--text);
   font-size: 0.9rem;
   display: flex;
   align-items: center;
@@ -304,7 +312,8 @@ body {
   left: 1.25rem;
   right: 1.25rem;
   margin: 0;
-  color: #cfd3da;
+  padding: 0.55rem 0.9rem;
+  color: var(--text);
   font-size: 0.9rem;
   line-height: 1.4;
   display: -webkit-box;
@@ -312,6 +321,24 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   pointer-events: none;
+  background: rgba(10, 12, 16, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+}
+
+/* Wide screens: keep the captions aligned with the card instead of spanning
+   the whole viewport. Width mirrors the card's height formula (H = min(76% of
+   stage, (100vw - 3rem) * 1.5), W = H / 1.5, max-width 94%). */
+
+@media (min-width: 641px) {
+  .deck-info-top,
+  .deck-overview {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(calc(((100vh - var(--nav-h)) * 0.76) / 1.5), calc(100vw - 3rem), 94vw);
+  }
 }
 
 /* Decision buttons floating above the bottom menu */

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as api from '../api';
 import type { BrowseItem } from '../api';
+import { displayTitle } from '../title';
 import { timeAgo } from '../time';
 
 interface BrowsePageProps {
@@ -96,10 +97,7 @@ export default function BrowsePage({ showToast }: BrowsePageProps) {
               <div key={item.id} className="trash-row">
                 <img className="trash-thumb" src={item.posterUrl} alt="" />
                 <div>
-                  <div className="trash-title">
-                    {item.title}
-                    {item.year !== null ? ` (${item.year})` : ''}
-                  </div>
+                  <div className="trash-title">{displayTitle(item.title, item.year)}</div>
                   <div className="trash-meta">
                     {item.sourceName} · {item.type === 'show' ? 'Show' : 'Movie'} ·{' '}
                     {tab === 'kept' ? 'kept' : 'deleted'} {timeAgo(item.decidedAt)}

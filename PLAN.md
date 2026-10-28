@@ -207,7 +207,7 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [x] `tossarr.xml` local Unraid template (import via Add Container; no Community Apps submission) — v2 format following the official CA starter + a real-world GHCR template (tofarr): full image path in `<Repository>`, package URL in `<Registry>`, port config maps host→8901 without injecting `TOSSARR_PORT` env, `sh` shell for alpine. Port + config-dir configs only — everything else is set in the web UI (avoids env-over-settings precedence surprises). App icon (`icon.svg`/`icon.png`) referenced from the template
 - [x] README: docker run, env vars, Unraid install, troubleshooting (Docker network reachability) — written ahead of schedule during M5; polished alongside packaging (pull-from-GHCR quick start, template import steps, package visibility note)
 - [x] Image build + push to GHCR — GitHub Actions workflow (`.github/workflows/docker.yml`) builds linux/amd64 and pushes `latest`/`main`/sha tags on every push to main plus versioned tags for `v*`; first build green (run 40638563288). Note: set the package public under repo → Packages so Unraid can pull without registry credentials
-- [ ] Final manual test on a real Sonarr/Radarr (PLAN §8 checklist) — pending user's instance
+- [x] Final manual test on a real Sonarr/Radarr (PLAN §8 checklist) — safe items verified 2026-10-28 against the live instances (setup, desktop swipe physics, undo×20, browse/restore, failed-confirm, poster fallback); destructive confirm + caught-up reset deferred to the user (see §8)
 
 **Total estimate: ~4–5 focused days.**
 
@@ -215,7 +215,16 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 
 - **Unit (vitest):** sync normalization/upsert/prune (incl. tombstone preservation), decision + undo + confirm/confirm-all logic, settings merge/masking — all against in-memory SQLite and fixture JSON captured from the real Sonarr v3 / Radarr v3 API shapes.
 - **Integration:** route tests run the full app (`buildApp` + `fastify.inject`) against live mock Sonarr/Radarr servers on ephemeral ports — real HTTP, no external network. Suite: 85 tests in `server/test/`, ~0.5s.
-- **Manual checklist:** setup flow, swipe on phone + desktop, undo chain of 20, browse/restore, confirm a pending removal against real Radarr/Sonarr (verify metadata + files gone), failed-confirm stays pending, caught-up reset, poster proxy failure fallback, sync after upstream changes (add/remove a movie in Radarr → resync).
+- **Manual checklist** (run 2026-10-28 against real Sonarr `…:8989` + Radarr `…:7878`; safe items scripted net-zero):
+  - [x] Setup flow — both real sources added via the web UI, test-connection green, sync pulled 144 shows + 599 movies, posters proxy as real JPEGs
+  - [x] Swipe on desktop — drag physics verified (commit / flick / spring-back, KEEP/NOPE badges); phone touch feel-check left to the user
+  - [x] Undo chain of 20 — 20 keeps undone in strict LIFO order, all back in the deck (net-zero)
+  - [x] Browse / restore — swipe left → pending list → restore → back in the deck (net-zero)
+  - [x] Failed-confirm stays pending — source pointed at a dead port; confirm returned `502 "Cannot reach source …"`, item stayed pending, URL restored
+  - [x] Poster proxy failure fallback — unit-tested (non-image upstream → generated SVG); live posters confirmed as real JPEGs
+  - [ ] Confirm a pending removal against real Radarr/Sonarr (verify metadata + files gone) — destructive; user picks the item
+  - [ ] Caught-up reset — wipes all keeps; user's call
+  - [ ] Sync after upstream changes (add/remove a movie in Radarr → resync) — optional, user
 
 ## 9. Risks & Mitigations
 
