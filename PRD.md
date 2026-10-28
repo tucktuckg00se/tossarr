@@ -36,14 +36,14 @@ Single user running Unraid with Sonarr and Radarr (any number of instances). Pri
 | FR5 | **Undo.** Undo last decision from a stack of up to 20, via button or key. |
 | FR6 | **Browse screen.** Three lists with thumbnails: **Kept**, **To Remove** (pending), and **Removed** (confirmed). The To Remove list supports per-item confirm, restore, and "confirm all". Confirming permanently deletes the item from Radarr/Sonarr (metadata + files) behind a warning showing what will be deleted; the Removed list is a log of confirmed deletions — those items cannot be restored. |
 | FR7 | **Caught-up state.** When there are no undecided or due-to-reappear items in the deck: show stats (kept/pending/removed counts, library size), "Resync" button, and "Reset decisions" (with confirmation). |
-| FR8 | **Deck filter.** Toggle at top of deck: All / Movies / Shows. |
+| FR8 | **Deck filter.** Small toggle overlaid at the top of the fullscreen deck: All / Movies / Shows. |
 | FR9 | **Poster proxy.** Server proxies poster images from Sonarr/Radarr (`/api/posters/:source/:id`) to avoid CORS/mixed-content issues across Unraid ports; sets cache headers and a generated fallback image on failure. |
 
 ## 6. UX Details
 
-- Dark theme, mobile-first layout; deck centered at max-width ~420px on desktop.
-- Portrait 2:3 poster cards; two "peeking" cards stacked behind with scale/offset for depth.
-- Decision badges ("KEEP ✓" / "NOPE ✕") fade in over the card as drag progresses.
+- Dark theme, mobile-first layout. The deck is a **fullscreen cover**: the current item's poster fills the viewport — sharp poster centered over a blurred, dimmed full-bleed version of itself (no peeking card stack; depth comes from the fly-out animation).
+- Overlays on the cover: title, year, type badge and light meta (network/genre/runtime) near the top; overview snippet above the controls. Decision badges ("KEEP ✓" / "NOPE ✕") fade in over the cover as drag progresses.
+- **Bottom menu bar** (the app's only navigation): Deck · Browse · Trash (pending removals, live count badge) · Settings. On the deck screen the decision buttons (✕ / ✓ + undo) float just above the menu.
 - Poster load failure → gradient placeholder with title text (never a broken image).
 - All swipe actions have button equivalents; elements carry ARIA labels.
 

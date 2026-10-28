@@ -143,10 +143,11 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 
 ## 5. Frontend Design Notes
 
-- **Deck.tsx** owns a queue of items (current + prefetch buffer). Pointer events (`pointerdown/move/up`, `setPointerCapture`) drive drag; transform = `translateX(dx) rotate(dx*0.08deg)`; commit when `|dx|>120` or velocity >0.5px/ms in direction; otherwise spring back (CSS transition).
-- Fly-out: on commit, animate off-screen with 300ms ease-in, then pop the item and promote the next card; push decision to API (optimistic — UI updates immediately, toast + auto-undo on failure).
-- Keyboard: `ArrowLeft`/`j` = remove, `ArrowRight`/`l` = keep, `u`/`Backspace` = undo.
-- Screens are state-routed in `App.tsx`: no enabled sources → `Setup` (add-source flow); otherwise tabbed Deck / Browse (bottom nav on mobile). Setup stays reachable for managing sources.
+- **Layout (revised 2026-10-27):** fullscreen cover + bottom menu. The deck stage fills the viewport above a fixed bottom nav (Deck · Browse · Trash+badge · Settings); no top tabs. The current poster is full-bleed: blurred/dimmed copy as background, sharp poster `object-fit: contain` centered. No peeking card stack.
+- **Deck.tsx** owns a queue of items (current + prefetch buffer). Pointer events (`pointerdown/move/up`, `setPointerCapture`) drive drag; transform = `translateX(dx) rotate(dx*0.04deg)` (smaller angle for the larger surface); commit when `|dx|>120` or velocity >0.5px/ms in direction; otherwise spring back (CSS transition).
+- Fly-out: on commit, animate off-screen with 300ms ease-in, then pop the item and promote the next card; push decision to API (optimistic — UI updates immediately, toast + auto-restore on failure).
+- Keyboard: `ArrowLeft`/`j` = remove, `ArrowRight`/`l` = keep, `u`/`Backspace` = undo. Decision buttons (✕ / ✓ + undo) float above the bottom nav and mirror swipes.
+- Screens are state-routed in `App.tsx`: no sources → `Setup` (add-source flow); otherwise fullscreen pages behind the bottom nav. Setup stays reachable for managing sources.
 - No router library, no component library; plain CSS with custom properties for the theme.
 
 ## 6. Docker & Unraid Packaging
@@ -183,17 +184,19 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [x] Setup screen: add-source flow (name, type, URL, key) with test-connection + item counts; manage/disable/remove sources later (Settings tab → Sources panel)
 - [x] App screen routing (setup vs main tabs: Deck / Browse / Settings — Deck & Browse are placeholders until M4/M5)
 
-**M4 — Deck & swipe (1 day)** ← the fun part
-- [ ] Card component (poster w/ fallback, badges, overview clamp)
-- [ ] Deck stack rendering with peeking cards
-- [ ] Pointer drag + rotation + commit/spring-back physics
-- [ ] Decision buttons + keyboard shortcuts + undo button
-- [ ] Prefetch next batch; optimistic decisions with failure toast
+**M4 — Deck & swipe (1 day)** ✅
+- [x] Shell restructure: fullscreen stage + bottom menu (Deck · Browse · Trash+badge · Settings); top tabs retired (`App.tsx` state-routes pages; `BottomNav.tsx` owns the `Page` type, inline stroke SVG icons, pending badge on Trash)
+- [x] Fullscreen cover: blurred full-bleed background + 2:3 poster card at ~76% stage height, title/year/type/source/meta overlays top, 3-line-clamped overview above the decision bar
+- [x] Pointer drag + rotation (`dx * 0.04deg`) + commit/spring-back physics (commit at |dx|>120px or >0.5px/ms flick in direction); 300ms ease-in fly-out; KEEP/NOPE badges fade with drag
+- [x] Decision buttons (✕ / ✓ + undo) floating above the menu + keyboard shortcuts (←/j, →/l, u/Backspace; inputs skipped)
+- [x] Prefetch next batch when ≤5 remain (deduped by id); optimistic decisions — success filters the card out of the queue, failure toasts and springs the card back (queue never advanced); undo unshifts the returned item to the front
+- [x] Trash page (`PendingPage.tsx`): pending list with thumbs + decided-at, per-item confirm behind a `window.confirm` irreversibility warning (502 stays pending), restore = clearDecision, confirm-all via armed double-confirm button (5s disarm)
+- [x] Server: `/api/browse` returns `total` (nav badge + M5 pagination); also fixed `deckBatch.totalPending`, which counted deck-eligible items instead of pending removals — now an honest `COUNT(*) FROM decisions WHERE decision='remove' AND confirmed=0`
 
 **M5 — Browse & caught-up (½ day)**
-- [ ] Browse screen: Kept / To Remove (per-item confirm + warning, confirm-all with double-confirm, restore) / Removed tabs (log of confirmed deletions; not restorable)
+- [ ] Browse screen: Kept / Removed lists w/ thumbnails + pagination (pending lives on the Trash page)
 - [ ] CaughtUp screen: stats, resync, reset-decisions w/ confirm
-- [ ] Deck filter toggle (all/movies/shows)
+- [ ] Deck filter toggle overlaid at top of deck (all/movies/shows)
 
 **M6 — Polish (½ day)**
 - [ ] Loading skeletons, empty states, error toasts

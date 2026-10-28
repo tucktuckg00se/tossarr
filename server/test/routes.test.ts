@@ -204,12 +204,12 @@ describe('sources', () => {
 });
 
 describe('library (deck)', () => {
-  it('aggregates enabled sources with the pending total', async () => {
+  it('aggregates enabled sources and reports the pending-removal count', async () => {
     await seedBoth();
     const res = await f.app.inject({ method: 'GET', url: '/api/library' });
     expect(res.statusCode).toBe(200);
     const body = res.json() as { items: Array<Record<string, unknown>>; totalPending: number };
-    expect(body.totalPending).toBe(16);
+    expect(body.totalPending).toBe(0); // no decisions yet
     expect(body.items).toHaveLength(16);
 
     const office = body.items.find((i) => i.id === '1:101');
@@ -221,21 +221,26 @@ describe('library (deck)', () => {
       posterUrl: '/api/posters/1/101',
     });
     expect(office?.meta).toMatchObject({ network: 'NBC' });
+
+    // totalPending tracks pending removals, not the deck size.
+    expect((await f.app.inject({ method: 'POST', url: '/api/decisions/1:102', payload: { decision: 'remove' } })).statusCode).toBe(200);
+    const after = (await f.app.inject({ method: 'GET', url: '/api/library' })).json() as { totalPending: number };
+    expect(after.totalPending).toBe(1);
   });
 
   it('filters by type', async () => {
     await seedBoth();
     const shows = (await f.app.inject({ method: 'GET', url: '/api/library?filter=show' })).json() as { items: Array<{ type: string }>; totalPending: number };
-    expect(shows.totalPending).toBe(8);
+    expect(shows.totalPending).toBe(0);
     expect(new Set(shows.items.map((i) => i.type))).toEqual(new Set(['show']));
 
     const movies = (await f.app.inject({ method: 'GET', url: '/api/library?filter=movie' })).json() as { items: Array<{ type: string }>; totalPending: number };
-    expect(movies.totalPending).toBe(8);
+    expect(movies.totalPending).toBe(0);
     expect(new Set(movies.items.map((i) => i.type))).toEqual(new Set(['movie']));
 
     // Unknown filters fall back to 'all'.
     const all = (await f.app.inject({ method: 'GET', url: '/api/library?filter=bogus' })).json() as { totalPending: number };
-    expect(all.totalPending).toBe(16);
+    expect(all.totalPending).toBe(0);
   });
 });
 
@@ -389,15 +394,18 @@ describe('browse', () => {
       db.setDecision(f.db, n, 'keep', new Date(now + id * 1000).toISOString());
     }
 
-    const page1 = (await f.app.inject({ method: 'GET', url: '/api/browse?list=kept&limit=2' })).json() as { items: Array<{ id: string; decidedAt: string }> };
+    const page1 = (await f.app.inject({ method: 'GET', url: '/api/browse?list=kept&limit=2' })).json() as { items: Array<{ id: string; decidedAt: string }>; total: number };
     expect(page1.items.map((i) => i.id)).toEqual(['1:104', '1:102']); // newest first
     expect(page1.items[0]?.decidedAt).toBeTruthy();
+    expect(page1.total).toBe(3);
 
-    const page2 = (await f.app.inject({ method: 'GET', url: '/api/browse?list=kept&limit=2&offset=2' })).json() as { items: Array<{ id: string }> };
+    const page2 = (await f.app.inject({ method: 'GET', url: '/api/browse?list=kept&limit=2&offset=2' })).json() as { items: Array<{ id: string }>; total: number };
     expect(page2.items.map((i) => i.id)).toEqual(['1:101']);
+    expect(page2.total).toBe(3);
 
-    const clamped = (await f.app.inject({ method: 'GET', url: '/api/browse?list=kept&limit=9999' })).json() as { items: unknown[] };
+    const clamped = (await f.app.inject({ method: 'GET', url: '/api/browse?list=kept&limit=9999' })).json() as { items: unknown[]; total: number };
     expect(clamped.items.length).toBeLessThanOrEqual(200);
+    expect(clamped.total).toBe(3);
   });
 });
 

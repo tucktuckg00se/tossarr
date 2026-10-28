@@ -364,9 +364,8 @@ export function deckBatch(
     LEFT JOIN decisions d ON d.item_id = i.id
     WHERE (d.item_id IS NULL OR (d.decision = 'keep' AND d.next_due IS NOT NULL AND d.next_due <= :now))
       AND (:filter = 'all' OR i.type = :filter)`;
-  const totalPending = (
-    db.prepare(`SELECT COUNT(*) AS n ${where}`).get({ now: nowIso, filter }) as { n: number }
-  ).n;
+  // Pending-removal count for the Trash badge — independent of the deck query above.
+  const totalPending = (db.prepare(`SELECT COUNT(*) AS n FROM decisions WHERE decision = 'remove' AND confirmed = 0`).get() as { n: number }).n;
   const rows = db
     .prepare(
       `SELECT i.*, s.name AS source_name ${where}
@@ -384,13 +383,24 @@ export function browseList(
   list: 'kept' | 'pending' | 'removed',
   limit: number,
   offset: number,
-): (ItemWithSource & { decidedAt: string })[] {
+): { items: (ItemWithSource & { decidedAt: string })[]; total: number } {
   const where =
     list === 'kept'
       ? "d.decision = 'keep'"
       : list === 'pending'
         ? "d.decision = 'remove' AND d.confirmed = 0"
         : "d.decision = 'remove' AND d.confirmed = 1";
+  const total = (
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n
+         FROM decisions d
+         JOIN items i ON i.id = d.item_id
+         JOIN sources s ON s.id = i.source_id
+         WHERE ${where}`,
+      )
+      .get() as { n: number }
+  ).n;
   const rows = db
     .prepare(
       `SELECT i.*, s.name AS source_name, d.decided_at
@@ -402,11 +412,14 @@ export function browseList(
        LIMIT ? OFFSET ?`,
     )
     .all(limit, offset) as Record<string, unknown>[];
-  return rows.map((r) => ({
-    ...mapItem(r),
-    sourceName: r.source_name as string,
-    decidedAt: r.decided_at as string,
-  }));
+  return {
+    items: rows.map((r) => ({
+      ...mapItem(r),
+      sourceName: r.source_name as string,
+      decidedAt: r.decided_at as string,
+    })),
+    total,
+  };
 }
 
 /**

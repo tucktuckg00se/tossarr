@@ -157,6 +157,7 @@ export function getLibrary(filter: LibraryFilter = 'all', limit = 20): Promise<D
 export interface BrowsePage {
   list: BrowseListName;
   items: BrowseItem[];
+  total: number;
 }
 
 export function getBrowse(list: BrowseListName, limit = 50, offset = 0): Promise<BrowsePage> {

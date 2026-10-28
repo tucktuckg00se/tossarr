@@ -13,7 +13,7 @@ export async function browseRoutes(app: FastifyInstance, ctx: AppContext): Promi
     const limit = clampInt(req.query.limit, 50, 1, 200);
     const offset = clampInt(req.query.offset, 0, 0, 1_000_000);
 
-    const rows = db.browseList(ctx.db, raw, limit, offset);
-    return { list: raw, items: rows.map((r) => ({ ...toItem(r), decidedAt: r.decidedAt })) };
+    const { items, total } = db.browseList(ctx.db, raw, limit, offset);
+    return { list: raw, items: items.map((r) => ({ ...toItem(r), decidedAt: r.decidedAt })), total };
   });
 }

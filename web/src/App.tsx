@@ -1,23 +1,42 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from './api';
 import type { Settings, Source } from './api';
+import BottomNav from './components/BottomNav';
+import type { Page } from './components/BottomNav';
+import Deck from './components/Deck';
+import PendingPage from './components/PendingPage';
 import Setup from './components/Setup';
 import SourcesPanel from './components/SourcesPanel';
 import SettingsPanel from './components/SettingsPanel';
 
-type Tab = 'deck' | 'browse' | 'settings';
+interface Toast {
+  message: string;
+  kind: 'ok' | 'error';
+}
 
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'deck', label: 'Deck' },
-  { id: 'browse', label: 'Browse' },
-  { id: 'settings', label: 'Settings' },
-];
+const TOAST_MS = 4000;
 
 export default function App() {
   const [sources, setSources] = useState<Source[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [tab, setTab] = useState<Tab>('deck');
+  const [page, setPage] = useState<Page>('deck');
+  const [pendingCount, setPendingCount] = useState(0);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((message: string, kind: 'ok' | 'error' = 'ok') => {
+    setToast({ message, kind });
+    if (toastTimer.current !== null) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (toastTimer.current !== null) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
 
   const refreshSources = useCallback(async () => {
     try {
@@ -28,10 +47,19 @@ export default function App() {
     }
   }, []);
 
+  // Cheap live count for the Trash badge: limit=1, we only want `total`.
+  const refreshPending = useCallback(() => {
+    api
+      .getBrowse('pending', 1)
+      .then((p) => setPendingCount(p.total))
+      .catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     void refreshSources();
     api.getSettings().then(setSettings).catch(() => undefined);
-  }, [refreshSources]);
+    refreshPending();
+  }, [refreshSources, refreshPending]);
 
   if (loadError !== null) {
     return (
@@ -65,41 +93,34 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1 className="brand">Tossarr</h1>
-        <nav className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`tab ${tab === t.id ? 'tab-active' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-      <main className="app-main">
-        {tab === 'deck' && (
-          <div className="card">
-            <h2>Deck</h2>
-            <p className="empty">The swipe deck arrives in the next milestone — right keeps, left tosses.</p>
+      <div className="stage">
+        {page === 'deck' && <Deck pendingCount={pendingCount} showToast={showToast} onPendingChange={refreshPending} />}
+        {page === 'browse' && (
+          <div className="page">
+            <div className="card">
+              <h2>Browse</h2>
+              <p className="empty">Kept and removed lists arrive in the next milestone.</p>
+            </div>
           </div>
         )}
-        {tab === 'browse' && (
-          <div className="card">
-            <h2>Browse</h2>
-            <p className="empty">Kept, pending and removed lists arrive in the next milestone.</p>
+        {page === 'trash' && (
+          <div className="page">
+            <PendingPage showToast={showToast} onCountChange={setPendingCount} />
           </div>
         )}
-        {tab === 'settings' && (
-          <>
+        {page === 'settings' && (
+          <div className="page">
             <SourcesPanel sources={sources} onChanged={() => void refreshSources()} />
             {settings !== null && <SettingsPanel settings={settings} onSaved={setSettings} />}
-          </>
+          </div>
         )}
-      </main>
+      </div>
+      <BottomNav page={page} pendingCount={pendingCount} onNavigate={setPage} />
+      {toast !== null && (
+        <div className={`toast toast-${toast.kind}`} role="status">
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

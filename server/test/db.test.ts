@@ -169,12 +169,15 @@ describe('deckBatch', () => {
     return sourceId;
   }
 
-  it('returns undecided items and the total pending count', () => {
+  it('returns undecided items; totalPending counts pending removals', () => {
     const sourceId = seed();
     const { items, totalPending } = db.deckBatch(conn, 'all', 10, NOW);
-    expect(totalPending).toBe(2);
+    expect(totalPending).toBe(0); // no decisions yet
     expect(items.map((i) => i.id).sort()).toEqual([`${sourceId}:1`, `${sourceId}:2`].sort());
     expect(items[0]?.sourceName).toBe('TV');
+
+    db.setDecision(conn, `${sourceId}:1`, 'remove', NOW);
+    expect(db.deckBatch(conn, 'all', 10, NOW).totalPending).toBe(1);
   });
 
   it('excludes kept items until their reappear date passes', () => {
@@ -182,7 +185,7 @@ describe('deckBatch', () => {
     db.setDecision(conn, `${sourceId}:1`, 'keep', NOW, '2027-01-01T00:00:00.000Z'); // future
     db.setDecision(conn, `${sourceId}:2`, 'keep', NOW, '2026-01-01T00:00:00.000Z'); // past
     const { items, totalPending } = db.deckBatch(conn, 'all', 10, NOW);
-    expect(totalPending).toBe(1);
+    expect(totalPending).toBe(0); // keeps are not pending removals
     expect(items.map((i) => i.id)).toEqual([`${sourceId}:2`]);
   });
 
@@ -212,7 +215,7 @@ describe('deckBatch', () => {
     db.upsertItems(conn, sourceId, [item('3', 'show'), item('4', 'show')], NOW);
     const limited = db.deckBatch(conn, 'all', 2, NOW);
     expect(limited.items).toHaveLength(2);
-    expect(limited.totalPending).toBe(4);
+    expect(limited.totalPending).toBe(0);
   });
 });
 
@@ -227,14 +230,17 @@ describe('browseList', () => {
     db.setConfirmed(conn, `${sourceId}:4`, true);
 
     const kept = db.browseList(conn, 'kept', 50, 0);
-    expect(kept.map((r) => r.id)).toEqual([`${sourceId}:2`, `${sourceId}:1`]);
-    expect(kept[0]).toMatchObject({ decidedAt: '2026-10-03T00:00:00.000Z', sourceName: 'TV' });
+    expect(kept.items.map((r) => r.id)).toEqual([`${sourceId}:2`, `${sourceId}:1`]);
+    expect(kept.items[0]).toMatchObject({ decidedAt: '2026-10-03T00:00:00.000Z', sourceName: 'TV' });
+    expect(kept.total).toBe(2);
 
     const pending = db.browseList(conn, 'pending', 50, 0);
-    expect(pending.map((r) => r.id)).toEqual([`${sourceId}:3`]);
+    expect(pending.items.map((r) => r.id)).toEqual([`${sourceId}:3`]);
+    expect(pending.total).toBe(1);
 
     const removed = db.browseList(conn, 'removed', 50, 0);
-    expect(removed.map((r) => r.id)).toEqual([`${sourceId}:4`]);
+    expect(removed.items.map((r) => r.id)).toEqual([`${sourceId}:4`]);
+    expect(removed.total).toBe(1);
   });
 
   it('paginates with limit and offset', () => {
@@ -244,11 +250,14 @@ describe('browseList', () => {
       db.setDecision(conn, `${sourceId}:${i}`, 'keep', `2026-10-0${i}T00:00:00.000Z`);
     }
     const page1 = db.browseList(conn, 'kept', 2, 0);
-    expect(page1.map((r) => r.id)).toEqual([`${sourceId}:3`, `${sourceId}:2`]);
+    expect(page1.items.map((r) => r.id)).toEqual([`${sourceId}:3`, `${sourceId}:2`]);
+    expect(page1.total).toBe(3);
     const page2 = db.browseList(conn, 'kept', 2, 2);
-    expect(page2.map((r) => r.id)).toEqual([`${sourceId}:1`]);
+    expect(page2.items.map((r) => r.id)).toEqual([`${sourceId}:1`]);
+    expect(page2.total).toBe(3);
     const page3 = db.browseList(conn, 'kept', 2, 5);
-    expect(page3).toHaveLength(0);
+    expect(page3.items).toHaveLength(0);
+    expect(page3.total).toBe(3);
   });
 });
 
