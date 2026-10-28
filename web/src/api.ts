@@ -190,6 +190,8 @@ export function confirmRemoval(itemId: string): Promise<ConfirmResult> {
 export interface ConfirmAllResult {
   confirmed: number;
   failed: Array<{ itemId: string; error: string }>;
+  /** Pending removals left behind by the server's per-run cap. */
+  remaining: number;
 }
 
 export function confirmAllRemovals(): Promise<ConfirmAllResult> {

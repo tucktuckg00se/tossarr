@@ -53,11 +53,15 @@ export async function decisionsRoutes(app: FastifyInstance, ctx: AppContext): Pr
   });
 
   // Confirm every pending removal; per-item failures are reported, not fatal.
+  // Capped per run so a large pile can never be wiped with one click — the rest
+  // stay pending and the response reports how many remain.
+  const CONFIRM_ALL_CAP = 25;
   app.post('/api/decisions/confirm-all', async () => {
     const pending = db.pendingRemovals(ctx.db);
+    const batch = pending.slice(0, CONFIRM_ALL_CAP);
     let confirmed = 0;
     const failed: Array<{ itemId: string; error: string }> = [];
-    for (const row of pending) {
+    for (const row of batch) {
       const source = db.getSource(ctx.db, row.item.sourceId);
       if (!source) {
         failed.push({ itemId: row.itemId, error: 'source no longer exists' });
@@ -67,7 +71,7 @@ export async function decisionsRoutes(app: FastifyInstance, ctx: AppContext): Pr
       if (outcome.ok) confirmed += 1;
       else failed.push({ itemId: row.itemId, error: outcome.error ?? 'upstream delete failed' });
     }
-    return { confirmed, failed };
+    return { confirmed, failed, remaining: pending.length - batch.length };
   });
 
   // Clear all unconfirmed decisions (keeps + pending removals). Confirmed

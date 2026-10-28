@@ -139,6 +139,8 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
   // Keyboard: ←/j remove, →/l keep, u/Backspace undo.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Ignore OS key auto-repeat — holding an arrow key must not mass-swipe.
+      if (e.repeat) return;
       const target = e.target as HTMLElement | null;
       if (target !== null && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
       switch (e.key) {

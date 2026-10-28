@@ -350,6 +350,33 @@ describe('decisions', () => {
     for (const call of f.radarrState.deleteCalls) expect(call.query).toEqual(DELETE_PARAMS);
   });
 
+  it('caps confirm-all per run and reports the remainder', async () => {
+    const sourceId = await addSource('Big', 'sonarr', f.sonarrUrl, SONARR_API_KEY);
+    const nowIso = new Date().toISOString();
+    for (let n = 1; n <= 30; n++) {
+      db.upsertItems(
+        f.db,
+        sourceId,
+        [{ externalId: `s${n}`, type: 'show', title: `Show ${n}`, year: null, posterPath: null, overview: '', meta: {} }],
+        nowIso,
+      );
+      db.setDecision(f.db, `${sourceId}:s${n}`, 'remove', nowIso);
+    }
+
+    const res = await f.app.inject({ method: 'POST', url: '/api/decisions/confirm-all' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { confirmed: number; failed: unknown[]; remaining: number };
+    expect(body.confirmed).toBe(25);
+    expect(body.failed).toHaveLength(0);
+    expect(body.remaining).toBe(5);
+
+    // The remainder stays pending and is confirmed on the next run.
+    const again = await f.app.inject({ method: 'POST', url: '/api/decisions/confirm-all' });
+    const second = again.json() as { confirmed: number; remaining: number };
+    expect(second.confirmed).toBe(5);
+    expect(second.remaining).toBe(0);
+  });
+
   it('reset clears keeps and pending removals but preserves confirmed ones', async () => {
     await seedBoth();
     await f.app.inject({ method: 'POST', url: '/api/decisions/1:101', payload: { decision: 'keep' } });

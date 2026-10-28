@@ -46,6 +46,8 @@ export default function PendingPage({ showToast, onCountChange }: PendingPagePro
       const result = await api.confirmAllRemovals();
       if (result.failed.length > 0) {
         showToast(`Confirmed ${result.confirmed}; ${result.failed.length} failed and stay pending.`, 'error');
+      } else if (result.remaining > 0) {
+        showToast(`Permanently deleted ${result.confirmed}; ${result.remaining} more remain — run it again.`, 'ok');
       } else {
         showToast(`Permanently deleted ${result.confirmed} item${result.confirmed === 1 ? '' : 's'}.`, 'ok');
       }
