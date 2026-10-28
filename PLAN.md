@@ -164,19 +164,19 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [x] Dockerfile multi-stage + `docker-compose.dev.yml` (app + mock API)
 - [x] Dev loop working: `npm run dev` runs server (tsx watch) + vite with proxy
 
-**M1 — Backend core (1 day)**
+**M1 — Backend core (1 day)** ✅
 - [x] `config.ts`: env + /config/settings.json (port, sync interval, reappear days)
 - [x] `db.ts`: schema + migrations + query helpers (sources, items, decisions)
 - [x] Sources CRUD API with key masking
 - [x] Sonarr/Radarr clients (20s timeout; single attempt — no retry implemented)
 - [x] `sync.ts`: normalize/upsert/prune + scheduler (coalescing queue; one sync at a time)
 - [x] Mock fixture servers — one fake Sonarr + one fake Radarr instance, delete endpoints included (call-recording) — so dev/tests exercise multi-source + the confirm flow without real apps
-- [ ] Unit tests: sync upsert/prune, decision CRUD, undo ordering
+- [x] Unit tests: sync upsert/prune/tombstones, decision CRUD, undo ordering, config precedence, masking/clamp utils
 
-**M2 — API routes (½ day)**
+**M2 — API routes (½ day)** ✅
 - [x] settings (get/put), sources CRUD + test, library batching, decisions + undo + confirm (+confirm-all) + reset, browse, manual sync, health
 - [x] Poster proxy with fallback SVG + cache headers
-- [ ] Route tests against mock clients
+- [x] Route tests against mock clients (full app via `fastify.inject`, live mocks on ephemeral ports)
 
 **M3 — Frontend shell + setup (½ day)**
 - [ ] Vite app, dark theme base styles, `api.ts` client
@@ -210,7 +210,7 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 ## 8. Testing Strategy
 
 - **Unit (vitest):** sync normalization/upsert/prune (incl. tombstone preservation), decision + undo + confirm/confirm-all logic, settings merge/masking — all against in-memory SQLite and fixture JSON captured from the real Sonarr v3 / Radarr v3 API shapes.
-- **Integration:** route tests with the mock clients (no network).
+- **Integration:** route tests run the full app (`buildApp` + `fastify.inject`) against live mock Sonarr/Radarr servers on ephemeral ports — real HTTP, no external network. Suite: 85 tests in `server/test/`, ~0.5s.
 - **Manual checklist:** setup flow, swipe on phone + desktop, undo chain of 20, browse/restore, confirm a pending removal against real Radarr/Sonarr (verify metadata + files gone), failed-confirm stays pending, caught-up reset, poster proxy failure fallback, sync after upstream changes (add/remove a movie in Radarr → resync).
 
 ## 9. Risks & Mitigations

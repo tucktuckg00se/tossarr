@@ -336,7 +336,8 @@ export function latestPendingDecision(db: Database.Database): DecisionRow | null
 export function pendingRemovals(db: Database.Database): (DecisionRow & { item: ItemWithSource })[] {
   const rows = db
     .prepare(
-      `SELECT d.*, i.id AS item_id, i.source_id, i.type, i.title, i.year, i.poster_path,
+      `SELECT d.item_id, d.decision, d.confirmed, d.next_due, d.decided_at,
+              i.id, i.source_id, i.type, i.title, i.year, i.poster_path,
               i.overview, i.meta_json, i.updated_at, s.name AS source_name
        FROM decisions d
        JOIN items i ON i.id = d.item_id

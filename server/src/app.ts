@@ -25,8 +25,8 @@ function publicDir(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 }
 
-export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
-  const app = Fastify({ logger: true });
+export async function buildApp(ctx: AppContext, opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
+  const app = Fastify({ logger: opts.logger ?? true });
 
   await app.register(settingsRoutes, ctx);
   await app.register(sourcesRoutes, ctx);
