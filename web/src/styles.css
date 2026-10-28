@@ -177,11 +177,35 @@ body {
   transform: scale(1.2);
 }
 
+/* The deck is a vertical column (filter → card → buttons). The poster is the only thing
+   always visible; tapping it opens all item details over a darkened cover. */
+
+.deck-layout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: calc(1rem + env(safe-area-inset-top)) 1.25rem calc(0.9rem + env(safe-area-inset-bottom));
+}
+
+/* The card fills whatever vertical space the column leaves it and stays 2:3. */
+
+.deck-card-zone {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .deck-card {
   position: relative;
-  height: min(76%, calc((100vw - 3rem) * 1.5));
+  height: min(100%, calc((100vw - 2.5rem) * 1.5));
   aspect-ratio: 2 / 3;
-  max-width: 94%;
+  max-width: 100%;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
@@ -263,9 +287,10 @@ body {
   background: linear-gradient(to top, rgba(10, 12, 16, 0.85), transparent);
 }
 
-/* Filter toggle overlaid at the top of the deck */
+/* Filter toggle. In-flow first item of the column; floats over the cover in the
+   caught-up state, where there is no column. */
 
-.deck-filter {
+.deck-filter-float {
   position: absolute;
   top: calc(1rem + env(safe-area-inset-top));
   left: 50%;
@@ -273,81 +298,79 @@ body {
   z-index: 2;
 }
 
-/* Caption blocks carry their own dimmed, blurred backdrop so text stays
-   readable no matter where the poster's bright content lands. */
+/* Item details — shown when the poster is tapped, over a darkened cover. */
 
-.deck-info-top {
+.deck-details {
   position: absolute;
-  top: 3.4rem;
-  left: 1.25rem;
-  right: 1.25rem;
-  pointer-events: none;
-  padding: 0.55rem 0.9rem;
-  background: rgba(10, 12, 16, 0.45);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border-radius: 12px;
-}
-
-.deck-title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-}
-
-.deck-subtitle {
-  margin: 0.25rem 0 0;
-  color: var(--text);
-  font-size: 0.9rem;
+  inset: 0;
+  z-index: 6;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(8, 10, 14, 0.72);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
 }
 
-.deck-overview {
+.deck-details-panel {
+  position: relative;
+  width: min(480px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem;
+  background: rgba(18, 21, 28, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: default;
+}
+
+.deck-details-close {
   position: absolute;
-  bottom: 6.4rem;
-  left: 1.25rem;
-  right: 1.25rem;
-  margin: 0;
-  padding: 0.55rem 0.9rem;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.deck-details-close:hover {
   color: var(--text);
+}
+
+.deck-details-title {
+  margin: 0 2.5rem 0.5rem 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.deck-details-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  color: var(--muted);
   font-size: 0.9rem;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  pointer-events: none;
-  background: rgba(10, 12, 16, 0.45);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border-radius: 12px;
 }
 
-/* Wide screens: keep the captions aligned with the card instead of spanning
-   the whole viewport. Width mirrors the card's height formula (H = min(76% of
-   stage, (100vw - 3rem) * 1.5), W = H / 1.5, max-width 94%). */
-
-@media (min-width: 641px) {
-  .deck-info-top,
-  .deck-overview {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(calc(((100vh - var(--nav-h)) * 0.76) / 1.5), calc(100vw - 3rem), 94vw);
-  }
+.deck-details-overview {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
-/* Decision buttons floating above the bottom menu */
+/* Decision buttons — last item of the column */
 
 .decision-bar {
-  position: absolute;
-  bottom: 1rem;
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;

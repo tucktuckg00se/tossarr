@@ -13,3 +13,7 @@ coverage/
 
 # OpenCode local config (MCP servers, etc.)
 opencode.json
+
+# Local review/tooling artifacts
+.playwright-mcp/
+ui-review/

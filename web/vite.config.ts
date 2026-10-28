@@ -6,6 +6,9 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react()],
   server: {
+    // Bind all interfaces so the dev UI is reachable from other devices on the LAN
+    // (e.g. a phone) for mobile testing.
+    host: true,
     port: 5173,
     proxy: {
       '/api': 'http://localhost:8901',

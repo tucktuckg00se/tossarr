@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import * as api from '../api';
 import type { Item, LibraryFilter } from '../api';
-import { titleEndsWithYear } from '../title';
 import CaughtUp from './CaughtUp';
 
 interface DeckProps {
@@ -16,6 +15,7 @@ const BATCH_SIZE = 20;
 const PREFETCH_THRESHOLD = 5;
 const COMMIT_DISTANCE_PX = 120;
 const COMMIT_VELOCITY = 0.5; // px/ms
+const TAP_MAX_PX = 12; // pointer travel below this on release counts as a tap (open details)
 const FLY_MS = 300;
 const RESYNC_POLL_MS = 3000;
 const RESYNC_TIMEOUT_MS = 60_000;
@@ -54,6 +54,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
   const [flying, setFlying] = useState<DecisionKind | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState<LibraryFilter>('all');
+  const [showDetails, setShowDetails] = useState(false); // tap the poster → info overlay
 
   const pointer = useRef<PointerInfo | null>(null);
   const busyRef = useRef(false); // one decision in flight at a time (drag + button + keys)
@@ -144,6 +145,11 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       if (e.repeat) return;
       const target = e.target as HTMLElement | null;
       if (target !== null && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (e.key === 'Escape') {
+        setShowDetails(false);
+        return;
+      }
+      if (showDetails) return; // the details overlay owns the keyboard until closed
       switch (e.key) {
         case 'ArrowLeft':
         case 'j':
@@ -164,7 +170,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [commit, undo]);
+  }, [commit, undo, showDetails]);
 
   useEffect(
     () => () => {
@@ -220,7 +226,12 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
     const committed =
       Math.abs(dx) > COMMIT_DISTANCE_PX || (Math.abs(velocity) > COMMIT_VELOCITY && Math.sign(velocity) === Math.sign(dx));
     setDragDx(0); // spring back — or the flying class takes over, batched into the same render
-    if (committed) void commit(velocity !== 0 ? (velocity > 0 ? 'keep' : 'remove') : dx > 0 ? 'keep' : 'remove');
+    if (committed) {
+      void commit(velocity !== 0 ? (velocity > 0 ? 'keep' : 'remove') : dx > 0 ? 'keep' : 'remove');
+    } else if (Math.abs(dx) < TAP_MAX_PX) {
+      // A still finger released on the poster: open the details overlay.
+      setShowDetails(true);
+    }
   }
 
   async function resync() {
@@ -282,7 +293,13 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
   );
 
   if (loading) {
-    return <div className="deck-card skeleton" aria-hidden="true" />;
+    return (
+      <div className="deck-layout">
+        <div className="deck-card-zone">
+          <div className="deck-card skeleton" aria-hidden="true" />
+        </div>
+      </div>
+    );
   }
 
   if (loadError !== null) {
@@ -300,7 +317,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
   if (current === null) {
     return (
       <>
-        <div className="deck-filter">{filterSeg}</div>
+        <div className="deck-filter deck-filter-float">{filterSeg}</div>
         <CaughtUp pendingCount={pendingCount} syncing={syncing} onResync={() => void resync()} onResetDecisions={() => void resetDecisions()} />
       </>
     );
@@ -324,48 +341,37 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       <div className="cover-bg" style={{ backgroundImage: `url("${current.posterUrl}")` }} aria-hidden="true" />
       <div className="scrim scrim-top" aria-hidden="true" />
       <div className="scrim scrim-bottom" aria-hidden="true" />
-      <div className="deck-filter">{filterSeg}</div>
+      <div className="deck-layout">
+        <div className="deck-filter">{filterSeg}</div>
 
-      {/* Announce card changes to screen readers (dragging is not keyboard-accessible on its own). */}
-      <div className="sr-only" role="status">
-        {current.title}
-        {current.year !== null ? `, ${current.year}` : ''}, {current.type === 'show' ? 'show' : 'movie'}
-      </div>
+        {/* Announce card changes to screen readers (dragging is not keyboard-accessible on its own). */}
+        <div className="sr-only" role="status">
+          {current.title}
+          {current.year !== null ? `, ${current.year}` : ''}, {current.type === 'show' ? 'show' : 'movie'}
+        </div>
 
-      <div
-        className={cardClass}
-        style={
-          dragging && flying === null ? { transform: `translateX(${dragDx}px) rotate(${dragDx * 0.04}deg)` } : undefined
-        }
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={(e) => onPointerEnd(e, false)}
-        onPointerCancel={(e) => onPointerEnd(e, true)}
-      >
-        <img src={current.posterUrl} alt={`${current.title} poster`} draggable={false} />
-        <span className="deck-badge deck-badge-keep" style={{ opacity: keepOpacity }} aria-hidden="true">
-          KEEP
-        </span>
-        <span className="deck-badge deck-badge-remove" style={{ opacity: removeOpacity }} aria-hidden="true">
-          NOPE
-        </span>
-      </div>
+        <div className="deck-card-zone">
+          <div
+            className={cardClass}
+            style={
+              dragging && flying === null ? { transform: `translateX(${dragDx}px) rotate(${dragDx * 0.04}deg)` } : undefined
+            }
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={(e) => onPointerEnd(e, false)}
+            onPointerCancel={(e) => onPointerEnd(e, true)}
+          >
+            <img src={current.posterUrl} alt={`${current.title} poster`} draggable={false} />
+            <span className="deck-badge deck-badge-keep" style={{ opacity: keepOpacity }} aria-hidden="true">
+              KEEP
+            </span>
+            <span className="deck-badge deck-badge-remove" style={{ opacity: removeOpacity }} aria-hidden="true">
+              NOPE
+            </span>
+          </div>
+        </div>
 
-      <div className="deck-info-top">
-        <h1 className="deck-title">{current.title}</h1>
-        <p className="deck-subtitle">
-          {current.year !== null && !titleEndsWithYear(current.title, current.year) && (
-            <span>{current.year}</span>
-          )}
-          <span className="badge badge-type">{current.type === 'show' ? 'Show' : 'Movie'}</span>
-          <span>{current.sourceName}</span>
-          {meta !== '' && <span className="deck-meta">{meta}</span>}
-        </p>
-      </div>
-
-      {current.overview !== '' && <p className="deck-overview">{current.overview}</p>}
-
-      <div className="decision-bar">
+        <div className="decision-bar">
         <button
           type="button"
           className="dec-btn dec-btn-remove"
@@ -394,7 +400,34 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
             <path d="M4 12.5l5 5L20 7" />
           </svg>
         </button>
+        </div>
       </div>
+
+      {showDetails && (
+        <div
+          className="deck-details"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Details for ${current.title}`}
+          onClick={() => setShowDetails(false)}
+        >
+          <div className="deck-details-panel" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="deck-details-close" aria-label="Close details" onClick={() => setShowDetails(false)}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+            <h2 className="deck-details-title">{current.title}</h2>
+            <p className="deck-details-meta">
+              {current.year !== null && <span>{current.year}</span>}
+              <span className="badge badge-type">{current.type === 'show' ? 'Show' : 'Movie'}</span>
+              <span>{current.sourceName}</span>
+              {meta !== '' && <span>{meta}</span>}
+            </p>
+            {current.overview !== '' && <p className="deck-details-overview">{current.overview}</p>}
+          </div>
+        </div>
+      )}
     </>
   );
 }
