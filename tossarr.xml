@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>tossarr</Name>
+  <Repository>ghcr.io/tucktuckg00se/tossarr:latest</Repository>
+  <Registry>https://github.com/tucktuckg00se/tossarr/pkgs/container/tossarr</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/tucktuckg00se/tossarr/issues</Support>
+  <Project>https://github.com/tucktuckg00se/tossarr</Project>
+  <Overview>Tinder for your Sonarr/Radarr libraries. Swipe right to keep, left to toss. Kept items re-enter the deck after a configurable interval (default 30 days) so new seasons and movies don't get buried; left-swiped items land in a trash bin where confirming deletes them from the upstream instance for good (metadata and media files). Point it at any number of Sonarr and Radarr instances from the web UI. Single container, single port, SQLite storage — no other services required.</Overview>
+  <Category>Media Management:</Category>
+  <WebUI>http://[IP]:[PORT:8901]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/tucktuckg00se/tossarr/main/tossarr.xml</TemplateURL>
+  <ReadMe>https://raw.githubusercontent.com/tucktuckg00se/tossarr/main/README.md</ReadMe>
+  <Icon>https://raw.githubusercontent.com/tucktuckg00se/tossarr/main/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <License>GPLv3</License>
+  <Date>2026-10-27</Date>
+  <Config
+    Name="WebUI Port"
+    Target="8901"
+    Default="8901"
+    Mode="tcp"
+    Description="Host port for the web UI. Only change the host side; the container always listens on 8901."
+    Type="Port"
+    Display="always"
+    Required="true"
+    Mask="false">8901</Config>
+  <Config
+    Name="Config Directory"
+    Target="/config"
+    Default="/mnt/user/appdata/tossarr"
+    Mode="rw"
+    Description="Where settings.json and the SQLite database live. The container runs as UID 1000 — if first run fails to write, make the folder world-writable once: chmod -R 777 /mnt/user/appdata/tossarr"
+    Type="Path"
+    Display="always"
+    Required="true"
+    Mask="false">/mnt/user/appdata/tossarr</Config>
+</Container>

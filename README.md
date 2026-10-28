@@ -14,29 +14,49 @@ instances, then swipe through everything you own: **right to keep, left to toss*
 
 ## Quick start (Docker)
 
-Build from source (the image will also be published to `ghcr.io/tucker/tossarr`):
+The image is published to GitHub Container Registry on every push to `main`:
 
 ```sh
-docker build -t tossarr .
+docker pull ghcr.io/tucktuckg00se/tossarr:latest
 docker run -d \
   --name tossarr \
   -p 8901:8901 \
   -v /path/to/appdata/tossarr:/config \
-  tossarr
+  ghcr.io/tucktuckg00se/tossarr:latest
+```
+
+Or build from source:
+
+```sh
+docker build -t tossarr .
+docker run -d --name tossarr -p 8901:8901 -v /path/to/appdata/tossarr:/config tossarr
 ```
 
 Open http://localhost:8901, add your Sonarr/Radarr instance(s) with their API keys on the
 setup screen, and start swiping.
 
-### Unraid notes
+### Installing on Unraid
 
-- Create an appdata folder for `tossarr` (e.g. `/mnt/user/appdata/tossarr`). The container
-  runs as a non-root user (UID 1000), so make sure the folder is writable by that UID before
-  first run — in Unraid's UI, set the folder's permissions to allow all users, or on the
-  console: `chmod -R 777 /mnt/user/appdata/tossarr`.
+Easiest path is the bundled template. In **Docker** (or Community Applications → Add
+Container), open the top-right menu and choose **Import from URL**, then paste:
+
+```
+https://raw.githubusercontent.com/tucktuckg00se/tossarr/main/tossarr.xml
+```
+
+(You can also download `tossarr.xml` from this repo and import it as a file.) Then create an
+appdata folder (e.g. `/mnt/user/appdata/tossarr`) and start the container. Two things to know:
+
+- The container runs as a non-root user (UID 1000), so the appdata folder must be writable by
+  that UID before first run — in Unraid's UI, set the folder's permissions to allow all users,
+  or on the console: `chmod -R 777 /mnt/user/appdata/tossarr`.
 - The container must be able to reach your Sonarr/Radarr instances. Either put Tossarr on the
   same Docker network as those containers (and use their service names) or point it at
   host-side URLs/ports.
+
+If pulling `ghcr.io/tucktuckg00se/tossarr` fails with an authentication error, the package is
+private: go to the repo's **Packages** page on GitHub and switch it to public (or add your
+GitHub credentials to Unraid under Docker → Registry).
 
 ## Configuration
 
@@ -127,6 +147,8 @@ A small JSON REST API under `/api`:
 server/src/        Fastify app: routes, SQLite layer, sync engine, Sonarr/Radarr clients
 server/src/mock/   Fixture Sonarr/Radarr servers for local dev and tests
 web/src/           React 19 + Vite SPA (deck, browse, trash, settings)
+tossarr.xml        Unraid container template (import via Add Container)
+icon.svg/icon.png  App icon used by the template and docs
 PRD.md             Product requirements
 PLAN.md            Milestone plan (M0–M7)
 ```

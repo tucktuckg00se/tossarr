@@ -10,3 +10,6 @@ coverage/
 *.db-shm
 .env
 .DS_Store
+
+# OpenCode local config (MCP servers, etc.)
+opencode.json

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Tossarr icon: a card swiped away (left, crossed out) and the current card (kept, checked) -->
+  <rect width="512" height="512" rx="112" fill="#12141a"/>
+  <!-- Swiped-away card -->
+  <g transform="rotate(-24 196 272)">
+    <rect x="106" y="144" width="180" height="256" rx="24" fill="#39415a"/>
+    <path d="M166 242 L226 302 M226 242 L166 302" stroke="#e5484d" stroke-width="18" stroke-linecap="round"/>
+  </g>
+  <!-- Current card -->
+  <rect x="202" y="117" width="196" height="278" rx="26" fill="#eef1f7"/>
+  <!-- Keep badge -->
+  <circle cx="384" cy="348" r="42" fill="#2fbf71"/>
+  <path d="M362 348 l15 15 l28 -30" stroke="#ffffff" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
