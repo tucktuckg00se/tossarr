@@ -203,10 +203,11 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [x] Mobile pass: `viewport-fit=cover` + `theme-color` in the HTML shell; safe-area insets on the deck filter and toast; `touch-action: manipulation` + `overscroll-behavior: none` + no tap highlight (no double-tap-zoom delay, no pull-to-refresh fighting swipes); ~40px seg buttons; Trash actions drop to their own row under 480px; tighter page padding on phones; card shows a placeholder background while posters load. Desktop centering was already in place (`.page` max-width + flex-centered stage)
 - [x] ARIA: visually-hidden `role="status"` live region announces each card change (title, year, type); filter/tab buttons switched from tab roles to plain buttons with `aria-pressed`; decision buttons keep their existing labels; nav/seg/nav text no longer selectable on rapid taps
 
-**M7 — Packaging & docs (½ day)**
-- [ ] `tossarr.xml` local Unraid template (import via Add Container; no Community Apps submission)
-- [x] README: docker run, env vars, Unraid install, troubleshooting (Docker network reachability) — written ahead of schedule during M5; polish alongside packaging
-- [ ] Image build + push (GHCR if confirmed), final manual test on a real Sonarr/Radarr
+**M7 — Packaging & docs (½ day)** ✅
+- [x] `tossarr.xml` local Unraid template (import via Add Container; no Community Apps submission) — v2 format following the official CA starter + a real-world GHCR template (tofarr): full image path in `<Repository>`, package URL in `<Registry>`, port config maps host→8901 without injecting `TOSSARR_PORT` env, `sh` shell for alpine. Port + config-dir configs only — everything else is set in the web UI (avoids env-over-settings precedence surprises). App icon (`icon.svg`/`icon.png`) referenced from the template
+- [x] README: docker run, env vars, Unraid install, troubleshooting (Docker network reachability) — written ahead of schedule during M5; polished alongside packaging (pull-from-GHCR quick start, template import steps, package visibility note)
+- [x] Image build + push to GHCR — GitHub Actions workflow (`.github/workflows/docker.yml`) builds linux/amd64 and pushes `latest`/`main`/sha tags on every push to main plus versioned tags for `v*`; first build green (run 40638563288). Note: set the package public under repo → Packages so Unraid can pull without registry credentials
+- [ ] Final manual test on a real Sonarr/Radarr (PLAN §8 checklist) — pending user's instance
 
 **Total estimate: ~4–5 focused days.**
 
