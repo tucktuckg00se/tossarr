@@ -1,6 +1,18 @@
 :root {
   color-scheme: dark;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --bg: #12141a;
+  --panel: #1b1f29;
+  --panel-2: #232733;
+  --border: #2a3040;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --accent-a: #ff5864;
+  --accent-b: #ff7e5f;
+  --green: #7ee2a8;
+  --red: #ff8a8a;
+  --blue: #7ab8ff;
 }
 
 * {
@@ -10,43 +22,343 @@
 body {
   margin: 0;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  background: #12141a;
-  color: #e8eaed;
+  background: var(--bg);
+  color: var(--text);
 }
 
+/* --- Full-screen centered shell (setup + loading) ------------------------- */
+
 .shell {
-  text-align: center;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
   padding: 2rem;
 }
 
-h1 {
-  font-size: 3rem;
-  margin: 0 0 0.5rem;
-  background: linear-gradient(90deg, #ff5864, #ff7e5f);
+.brand-card {
+  width: min(560px, 100%);
+  text-align: center;
+}
+
+/* --- Main app layout ------------------------------------------------------- */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.9rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-main {
+  flex: 1;
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* --- Branding ---------------------------------------------------------------- */
+
+.brand {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.tagline {
-  margin: 0 0 1.5rem;
-  color: #9aa0a6;
+.brand-large {
+  font-size: 3rem;
 }
 
-.status {
-  display: inline-block;
-  padding: 0.4rem 1rem;
-  border-radius: 999px;
+.tagline {
+  margin: 0.5rem 0 1.5rem;
+  color: var(--muted);
+}
+
+/* --- Tabs ---------------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.tab-active {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+/* --- Cards ----------------------------------------------------------------------- */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.card h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.card-sub {
+  margin: 0 0 1rem;
+  color: var(--muted);
   font-size: 0.9rem;
-  background: #232733;
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+/* --- Forms -------------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent-b);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Buttons ---------------------------------------------------------------------------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+  border-color: transparent;
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  border-color: transparent;
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--red);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--red);
+}
+
+.btn-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* --- Status lines ------------------------------------------------------------------------------ */
+
+.status-line {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  min-height: 1.2em;
 }
 
 .status-ok {
-  color: #7ee2a8;
+  color: var(--green);
 }
 
 .status-error {
-  color: #ff8a8a;
+  color: var(--red);
+}
+
+.status-muted {
+  color: var(--muted);
+}
+
+/* --- Source list ---------------------------------------------------------------------------------- */
+
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.source-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+@media (max-width: 860px) {
+  .source-row {
+    grid-template-columns: 1fr auto;
+    row-gap: 0.5rem;
+  }
+}
+
+.source-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.source-url {
+  color: var(--muted);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.badge-sonarr {
+  background: rgba(122, 184, 255, 0.15);
+  color: var(--blue);
+}
+
+.badge-radarr {
+  background: rgba(255, 138, 138, 0.15);
+  color: var(--red);
+}
+
+/* --- Settings ---------------------------------------------------------------------------------------- */
+
+.settings-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+@media (max-width: 640px) {
+  .settings-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Misc ----------------------------------------------------------------------------------------------- */
+
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
+
+.spinner {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-b);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: -0.15em;
+  margin-right: 0.4em;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

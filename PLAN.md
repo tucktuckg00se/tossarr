@@ -178,10 +178,10 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [x] Poster proxy with fallback SVG + cache headers
 - [x] Route tests against mock clients (full app via `fastify.inject`, live mocks on ephemeral ports)
 
-**M3 — Frontend shell + setup (½ day)**
-- [ ] Vite app, dark theme base styles, `api.ts` client
-- [ ] Setup screen: add-source flow (name, type, URL, key) with test-connection + item counts; manage/disable/remove sources later
-- [ ] App screen routing (setup vs main tabs)
+**M3 — Frontend shell + setup (½ day)** ✅
+- [x] Vite app, dark theme base styles, `api.ts` client (`web/src/api.ts`, typed for the full API surface)
+- [x] Setup screen: add-source flow (name, type, URL, key) with test-connection + item counts; manage/disable/remove sources later (Settings tab → Sources panel)
+- [x] App screen routing (setup vs main tabs: Deck / Browse / Settings — Deck & Browse are placeholders until M4/M5)
 
 **M4 — Deck & swipe (1 day)** ← the fun part
 - [ ] Card component (poster w/ fallback, badges, overview clamp)
