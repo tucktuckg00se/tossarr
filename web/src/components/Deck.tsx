@@ -263,13 +263,12 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
   }
 
   const filterSeg = (
-    <div className="seg" role="tablist" aria-label="Deck filter">
+    <div className="seg" aria-label="Deck filter">
       {FILTERS.map((f) => (
         <button
           key={f.id}
           type="button"
-          role="tab"
-          aria-selected={filter === f.id}
+          aria-pressed={filter === f.id}
           className={`seg-btn ${filter === f.id ? 'seg-btn-active' : ''}`}
           onClick={() => setFilter((cur) => (cur === f.id ? cur : f.id))}
         >
@@ -280,12 +279,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
   );
 
   if (loading) {
-    return (
-      <div className="caught-up">
-        <span className="spinner" />
-        <p>Loading your deck…</p>
-      </div>
-    );
+    return <div className="deck-card skeleton" aria-hidden="true" />;
   }
 
   if (loadError !== null) {
@@ -328,6 +322,12 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       <div className="scrim scrim-top" aria-hidden="true" />
       <div className="scrim scrim-bottom" aria-hidden="true" />
       <div className="deck-filter">{filterSeg}</div>
+
+      {/* Announce card changes to screen readers (dragging is not keyboard-accessible on its own). */}
+      <div className="sr-only" role="status">
+        {current.title}
+        {current.year !== null ? `, ${current.year}` : ''}, {current.type === 'show' ? 'show' : 'movie'}
+      </div>
 
       <div
         className={cardClass}

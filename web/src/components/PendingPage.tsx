@@ -117,10 +117,17 @@ export default function PendingPage({ showToast, onCountChange }: PendingPagePro
         </p>
 
         {rows === null ? (
-          <p className="status-line status-muted">
-            <span className="spinner" />
-            Loading…
-          </p>
+          <div className="source-list" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="trash-row">
+                <div className="skeleton" style={{ width: 48, height: 72 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                  <div className="skeleton" style={{ height: 14, width: '60%' }} />
+                  <div className="skeleton" style={{ height: 12, width: '85%' }} />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : rows.length === 0 ? (
           <p className="empty">Nothing waiting. Swipe left on the deck to toss something.</p>
         ) : (

@@ -198,10 +198,10 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [x] CaughtUp screen (`CaughtUp.tsx`, rendered by Deck when the queue is empty): stat chips (kept / pending / removed — kept & removed via cheap `limit=1` browse totals), "Sync now" (existing resync polling), "Reset decisions" behind a `window.confirm` → `POST /api/decisions/reset` (confirmed removals preserved)
 - [x] Deck filter toggle: All / Shows / Movies segmented control overlaid at top center of the deck (also on the caught-up screen); reloads the queue via `getLibrary(filter)` and is honored by prefetch + resync polling; title overlay shifted down to make room
 
-**M6 — Polish (½ day)**
-- [ ] Loading skeletons, empty states, error toasts
-- [ ] Mobile pass (touch targets, safe-area insets), desktop centering
-- [ ] ARIA labels on swipe controls; focus management
+**M6 — Polish (½ day)** ✅
+- [x] Loading skeletons: shimmer placeholders for the deck card, Browse rows, and Trash rows (empty states + error toasts already shipped in M4/M5)
+- [x] Mobile pass: `viewport-fit=cover` + `theme-color` in the HTML shell; safe-area insets on the deck filter and toast; `touch-action: manipulation` + `overscroll-behavior: none` + no tap highlight (no double-tap-zoom delay, no pull-to-refresh fighting swipes); ~40px seg buttons; Trash actions drop to their own row under 480px; tighter page padding on phones; card shows a placeholder background while posters load. Desktop centering was already in place (`.page` max-width + flex-centered stage)
+- [x] ARIA: visually-hidden `role="status"` live region announces each card change (title, year, type); filter/tab buttons switched from tab roles to plain buttons with `aria-pressed`; decision buttons keep their existing labels; nav/seg/nav text no longer selectable on rapid taps
 
 **M7 — Packaging & docs (½ day)**
 - [ ] `tossarr.xml` local Unraid template (import via Add Container; no Community Apps submission)

@@ -25,6 +25,11 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  /* Mobile ergonomics: no pull-to-refresh/rubber-banding fighting the swipe
+     gestures, and no double-tap-zoom delay on buttons. */
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* --- Full-screen centered shell (setup + loading) ------------------------- */
@@ -67,6 +72,12 @@ body {
   padding: 1.5rem;
   width: min(860px, 100%);
   margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 1rem;
+  }
 }
 
 /* --- Branding ---------------------------------------------------------------- */
@@ -116,6 +127,8 @@ body {
   padding: 0.5rem 1.25rem;
   cursor: pointer;
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .nav-item svg {
@@ -172,6 +185,7 @@ body {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  background: var(--panel-2); /* placeholder while the poster loads */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -253,7 +267,7 @@ body {
 
 .deck-filter {
   position: absolute;
-  top: 1rem;
+  top: calc(1rem + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -681,6 +695,20 @@ select:focus {
 .trash-actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* On narrow phones the actions drop to their own row under the title. */
+@media (max-width: 480px) {
+  .trash-row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .trash-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+  }
 }
 
 /* --- Segmented control (browse tabs, deck filter) --------------------------------------------------------- */
@@ -702,9 +730,12 @@ select:focus {
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 0.35rem 0.9rem;
+  /* Generous padding keeps touch targets ~40px tall on phones. */
+  padding: 0.5rem 1rem;
   border-radius: 999px;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .seg-btn:hover {
@@ -755,7 +786,7 @@ select:focus {
 
 .toast {
   position: fixed;
-  top: 1rem;
+  top: calc(1rem + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -800,4 +831,33 @@ select:focus {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Loading skeletons (shimmer) */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--panel-2) 25%, #2b3142 50%, var(--panel-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Screen-reader-only text (e.g. live announcements of the current card) */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

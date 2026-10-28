@@ -51,13 +51,12 @@ export default function BrowsePage({ showToast }: BrowsePageProps) {
     <div className="card">
       <div className="browse-head">
         <h2>Browse</h2>
-        <div className="seg" role="tablist" aria-label="Browse list">
+        <div className="seg" aria-label="Browse list">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
-              role="tab"
-              aria-selected={tab === t.id}
+              aria-pressed={tab === t.id}
               className={`seg-btn ${tab === t.id ? 'seg-btn-active' : ''}`}
               onClick={() => switchTab(t.id)}
             >
@@ -73,10 +72,17 @@ export default function BrowsePage({ showToast }: BrowsePageProps) {
       </p>
 
       {rows === null ? (
-        <p className="status-line status-muted">
-          <span className="spinner" />
-          Loading…
-        </p>
+        <div className="source-list" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="trash-row">
+              <div className="skeleton" style={{ width: 48, height: 72 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                <div className="skeleton" style={{ height: 14, width: '60%' }} />
+                <div className="skeleton" style={{ height: 12, width: '85%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : rows.length === 0 ? (
         <p className="empty">
           {tab === 'kept'
