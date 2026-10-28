@@ -193,10 +193,10 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 - [x] Trash page (`PendingPage.tsx`): pending list with thumbs + decided-at, per-item confirm behind a `window.confirm` irreversibility warning (502 stays pending), restore = clearDecision, confirm-all via armed double-confirm button (5s disarm)
 - [x] Server: `/api/browse` returns `total` (nav badge + M5 pagination); also fixed `deckBatch.totalPending`, which counted deck-eligible items instead of pending removals — now an honest `COUNT(*) FROM decisions WHERE decision='remove' AND confirmed=0`
 
-**M5 — Browse & caught-up (½ day)**
-- [ ] Browse screen: Kept / Removed lists w/ thumbnails + pagination (pending lives on the Trash page)
-- [ ] CaughtUp screen: stats, resync, reset-decisions w/ confirm
-- [ ] Deck filter toggle overlaid at top of deck (all/movies/shows)
+**M5 — Browse & caught-up (½ day)** ✅
+- [x] Browse screen (`BrowsePage.tsx`): Kept / Removed tabs (segmented control) with thumbnail rows + offset pagination over `/api/browse` `total` ("Showing 1–50 of N", Newer/Older); pending stays on the Trash page. Shared `timeAgo` extracted to `web/src/time.ts`
+- [x] CaughtUp screen (`CaughtUp.tsx`, rendered by Deck when the queue is empty): stat chips (kept / pending / removed — kept & removed via cheap `limit=1` browse totals), "Sync now" (existing resync polling), "Reset decisions" behind a `window.confirm` → `POST /api/decisions/reset` (confirmed removals preserved)
+- [x] Deck filter toggle: All / Shows / Movies segmented control overlaid at top center of the deck (also on the caught-up screen); reloads the queue via `getLibrary(filter)` and is honored by prefetch + resync polling; title overlay shifted down to make room
 
 **M6 — Polish (½ day)**
 - [ ] Loading skeletons, empty states, error toasts
@@ -205,7 +205,7 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
 
 **M7 — Packaging & docs (½ day)**
 - [ ] `tossarr.xml` local Unraid template (import via Add Container; no Community Apps submission)
-- [ ] README: docker run, env vars, Unraid install, troubleshooting (Docker network reachability)
+- [x] README: docker run, env vars, Unraid install, troubleshooting (Docker network reachability) — written ahead of schedule during M5; polish alongside packaging
 - [ ] Image build + push (GHCR if confirmed), final manual test on a real Sonarr/Radarr
 
 **Total estimate: ~4–5 focused days.**

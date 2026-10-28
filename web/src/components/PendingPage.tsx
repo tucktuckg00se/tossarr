@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '../api';
 import type { BrowseItem } from '../api';
+import { timeAgo } from '../time';
 
 interface PendingPageProps {
   showToast: (message: string, kind?: 'ok' | 'error') => void;
@@ -9,18 +10,6 @@ interface PendingPageProps {
 
 const PAGE_SIZE = 200; // server max; plenty for v1
 const ARM_TIMEOUT_MS = 5000;
-
-function timeAgo(iso: string): string {
-  const then = Date.parse(iso);
-  if (Number.isNaN(then)) return iso;
-  const seconds = Math.round((Date.now() - then) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(then).toLocaleDateString();
-}
 
 export default function PendingPage({ showToast, onCountChange }: PendingPageProps) {
   const [rows, setRows] = useState<BrowseItem[] | null>(null);

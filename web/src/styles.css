@@ -249,9 +249,19 @@ body {
   background: linear-gradient(to top, rgba(10, 12, 16, 0.8), transparent);
 }
 
-.deck-info-top {
+/* Filter toggle overlaid at the top of the deck */
+
+.deck-filter {
   position: absolute;
   top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.deck-info-top {
+  position: absolute;
+  top: 3.4rem;
   left: 1.25rem;
   right: 1.25rem;
   pointer-events: none;
@@ -386,6 +396,37 @@ body {
 .caught-up p {
   margin: 0;
   color: var(--muted);
+}
+
+/* Caught-up stat chips */
+
+.stats {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.stat {
+  min-width: 84px;
+  padding: 0.6rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.stat-num {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* --- Cards / panels (settings, browse, trash) ------------------------------------ */
@@ -640,6 +681,59 @@ select:focus {
 .trash-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+/* --- Segmented control (browse tabs, deck filter) --------------------------------------------------------- */
+
+.seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.seg-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.seg-btn:hover {
+  color: var(--text);
+}
+
+.seg-btn-active,
+.seg-btn-active:hover {
+  background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+  color: #fff;
+}
+
+/* --- Browse ----------------------------------------------------------------------------------------------- */
+
+.browse-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
 }
 
 /* --- Settings ---------------------------------------------------------------------------------------- */

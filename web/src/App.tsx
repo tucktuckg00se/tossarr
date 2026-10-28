@@ -3,6 +3,7 @@ import * as api from './api';
 import type { Settings, Source } from './api';
 import BottomNav from './components/BottomNav';
 import type { Page } from './components/BottomNav';
+import BrowsePage from './components/BrowsePage';
 import Deck from './components/Deck';
 import PendingPage from './components/PendingPage';
 import Setup from './components/Setup';
@@ -97,10 +98,7 @@ export default function App() {
         {page === 'deck' && <Deck pendingCount={pendingCount} showToast={showToast} onPendingChange={refreshPending} />}
         {page === 'browse' && (
           <div className="page">
-            <div className="card">
-              <h2>Browse</h2>
-              <p className="empty">Kept and removed lists arrive in the next milestone.</p>
-            </div>
+            <BrowsePage showToast={showToast} />
           </div>
         )}
         {page === 'trash' && (

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import * as api from '../api';
-import type { Item } from '../api';
+import type { Item, LibraryFilter } from '../api';
+import CaughtUp from './CaughtUp';
 
 interface DeckProps {
   pendingCount: number;
@@ -19,6 +20,12 @@ const RESYNC_POLL_MS = 3000;
 const RESYNC_TIMEOUT_MS = 60_000;
 
 type DecisionKind = 'keep' | 'remove';
+
+const FILTERS: Array<{ id: LibraryFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'show', label: 'Shows' },
+  { id: 'movie', label: 'Movies' },
+];
 
 interface PointerInfo {
   id: number;
@@ -45,6 +52,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
   const [dragging, setDragging] = useState(false);
   const [flying, setFlying] = useState<DecisionKind | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [filter, setFilter] = useState<LibraryFilter>('all');
 
   const pointer = useRef<PointerInfo | null>(null);
   const busyRef = useRef(false); // one decision in flight at a time (drag + button + keys)
@@ -53,11 +61,11 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
 
   const current = queue[0] ?? null;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (f: LibraryFilter) => {
     setLoading(true);
     setLoadError(null);
     try {
-      const batch = await api.getLibrary('all', BATCH_SIZE);
+      const batch = await api.getLibrary(f, BATCH_SIZE);
       setQueue(batch.items);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : String(err));
@@ -66,9 +74,10 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
     }
   }, []);
 
+  // Mount and filter changes both go through here.
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(filter);
+  }, [load, filter]);
 
   // Prefetch: when the queue runs low, append a fresh batch (deduped by id).
   useEffect(() => {
@@ -76,7 +85,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
     if (queue.length > PREFETCH_THRESHOLD || prefetchingRef.current) return;
     prefetchingRef.current = true;
     void api
-      .getLibrary('all', BATCH_SIZE)
+      .getLibrary(filter, BATCH_SIZE)
       .then((batch) => {
         setQueue((q) => {
           const known = new Set(q.map((i) => i.id));
@@ -88,7 +97,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       .finally(() => {
         prefetchingRef.current = false;
       });
-  }, [loading, loadError, current, queue.length]);
+  }, [loading, loadError, current, queue.length, filter]);
 
   const commit = useCallback(
     async (decision: DecisionKind) => {
@@ -220,7 +229,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       const startedAt = Date.now();
       resyncTimer.current = setInterval(() => {
         void api
-          .getLibrary('all', BATCH_SIZE)
+          .getLibrary(filter, BATCH_SIZE)
           .then((batch) => {
             if (batch.items.length > 0) {
               if (resyncTimer.current !== null) clearInterval(resyncTimer.current);
@@ -242,6 +251,34 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
     }
   }
 
+  async function resetDecisions() {
+    try {
+      const result = await api.resetDecisions();
+      showToast(`Cleared ${result.cleared} decision${result.cleared === 1 ? '' : 's'} — back in the deck.`, 'ok');
+      onPendingChange();
+      void load(filter);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : String(err), 'error');
+    }
+  }
+
+  const filterSeg = (
+    <div className="seg" role="tablist" aria-label="Deck filter">
+      {FILTERS.map((f) => (
+        <button
+          key={f.id}
+          type="button"
+          role="tab"
+          aria-selected={filter === f.id}
+          className={`seg-btn ${filter === f.id ? 'seg-btn-active' : ''}`}
+          onClick={() => setFilter((cur) => (cur === f.id ? cur : f.id))}
+        >
+          {f.label}
+        </button>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="caught-up">
@@ -256,7 +293,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       <div className="caught-up">
         <h2>Couldn't load the deck</h2>
         <p>{loadError}</p>
-        <button type="button" className="btn btn-primary" onClick={() => void load()}>
+        <button type="button" className="btn btn-primary" onClick={() => void load(filter)}>
           Try again
         </button>
       </div>
@@ -265,27 +302,10 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
 
   if (current === null) {
     return (
-      <div className="caught-up">
-        <div className="caught-up-icon" aria-hidden="true">
-          ✓
-        </div>
-        <h2>All caught up</h2>
-        <p>
-          {pendingCount > 0
-            ? `You swiped through everything. ${pendingCount} item${pendingCount === 1 ? '' : 's'} waiting in Trash.`
-            : 'You swiped through everything Tossarr knows about.'}
-        </p>
-        <button type="button" className="btn btn-primary" onClick={() => void resync()} disabled={syncing}>
-          {syncing ? (
-            <>
-              <span className="spinner" />
-              Syncing…
-            </>
-          ) : (
-            'Sync now'
-          )}
-        </button>
-      </div>
+      <>
+        <div className="deck-filter">{filterSeg}</div>
+        <CaughtUp pendingCount={pendingCount} syncing={syncing} onResync={() => void resync()} onResetDecisions={() => void resetDecisions()} />
+      </>
     );
   }
 
@@ -307,6 +327,7 @@ export default function Deck({ pendingCount, showToast, onPendingChange }: DeckP
       <div className="cover-bg" style={{ backgroundImage: `url("${current.posterUrl}")` }} aria-hidden="true" />
       <div className="scrim scrim-top" aria-hidden="true" />
       <div className="scrim scrim-bottom" aria-hidden="true" />
+      <div className="deck-filter">{filterSeg}</div>
 
       <div
         className={cardClass}
