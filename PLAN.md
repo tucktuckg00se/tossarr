@@ -222,7 +222,7 @@ Deck batching: server returns up to 20 eligible items (undecided + due-to-reappe
   - [x] Browse / restore — swipe left → pending list → restore → back in the deck (net-zero)
   - [x] Failed-confirm stays pending — source pointed at a dead port; confirm returned `502 "Cannot reach source …"`, item stayed pending, URL restored
   - [x] Poster proxy failure fallback — unit-tested (non-image upstream → generated SVG); live posters confirmed as real JPEGs
-  - [ ] Confirm a pending removal against real Radarr/Sonarr (verify metadata + files gone) — destructive; user picks the item
+  - [x] Confirm a pending removal against real Radarr/Sonarr (verify metadata + files gone) — user clicked Delete on the Trash page for *Eden Lake* (Radarr movie 603); confirm called upstream with `removeFromDb=true&deleteFiles=true`, Radarr now 404s on the movie; spot-check of a morning Sonarr confirm (*Devs*, series 140) also 404. The originally staged item (*Tideland*) was restored by the user before confirming — still present in Radarr, untouched
   - [ ] Caught-up reset — wipes all keeps; user's call
   - [ ] Sync after upstream changes (add/remove a movie in Radarr → resync) — optional, user
 
