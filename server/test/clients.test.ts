@@ -32,11 +32,17 @@ describe('sonarr client', () => {
     expect(items.map((i) => i.externalId).sort()).toEqual(['101', '102', '103', '104', '105', '106', '107', '108']);
 
     const office = items.find((i) => i.externalId === '101');
-    expect(office).toMatchObject({ title: 'The Office', year: 2005, posterPath: '/posters/show-101.svg' });
+    // Posters point at the API-key-authenticated mediacover endpoint, not /MediaCover.
+    expect(office).toMatchObject({ title: 'The Office', year: 2005, posterPath: '/api/v3/mediacover/101/poster-500.jpg' });
     expect(office?.meta).toMatchObject({ network: 'NBC', runtime: 22, genres: ['Comedy'] });
 
     // Posterless series normalize to null.
     expect(items.find((i) => i.externalId === '103')?.posterPath).toBeNull();
+
+    // Even though the mock serves current-Sonarr-shaped data (null top-level
+    // poster, object-form images with the banner first), every normalized
+    // poster path must be a string or null — never a raw image object.
+    for (const i of items) expect(typeof i.posterPath === 'string' || i.posterPath === null).toBe(true);
   });
 
   it('deletes upstream with the agreed query params; second delete reports alreadyGone', async () => {
@@ -69,7 +75,8 @@ describe('radarr client', () => {
     expect(items.map((i) => i.externalId)).not.toContain('210');
 
     const dk = items.find((i) => i.externalId === '201');
-    expect(dk).toMatchObject({ title: 'The Dark Knight', posterPath: '/posters/movie-201.svg' });
+    // Posters point at the API-key-authenticated mediacover endpoint, not /MediaCover.
+    expect(dk).toMatchObject({ title: 'The Dark Knight', posterPath: '/api/v3/mediacover/201/poster-500.jpg' });
     expect(dk?.meta).toMatchObject({ imdbId: 1853728 });
 
     // Posterless movie normalizes to null.

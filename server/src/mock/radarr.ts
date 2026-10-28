@@ -81,6 +81,15 @@ export function buildRadarrMock(): { app: FastifyInstance; state: RadarrMockStat
       .send(posterSvg(fixture.title, `Radarr mock · ${fixture.year ?? ''}`));
   });
 
+  // API-key-authenticated cover endpoint; real Radarr v5+ gates /MediaCover behind a session.
+  app.get<{ Params: { id: string; file: string } }>('/api/v3/mediacover/:id/:file', async (req, reply) => {
+    const fixture = RADARR_MOVIES.find((m) => m.id === Number(req.params.id));
+    if (!fixture?.posterFile) return reply.code(404).send({ error: 'Not found' });
+    return reply
+      .type('image/svg+xml')
+      .send(posterSvg(fixture.title, `Radarr mock · ${fixture.year ?? ''}`));
+  });
+
   app.get('/__mock/state', async () => ({ movies: state.movies, deleteCalls: state.deleteCalls }));
 
   return { app, state };

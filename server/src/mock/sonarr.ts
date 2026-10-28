@@ -14,8 +14,9 @@ interface SeriesApi {
   genres: string[];
   year: number | null;
   runtime: number | null;
-  /** Sonarr returns image paths as plain strings. */
-  images: string[];
+  /** Current Sonarr returns image descriptors (banner first), not plain paths. */
+  images: Array<{ coverType: string; url: string }>;
+  /** Current Sonarr leaves the top-level poster null; it lives in images[]. */
   poster: string | null;
 }
 
@@ -34,8 +35,15 @@ function toSeries(f: ShowFixture): SeriesApi {
     genres: f.genres,
     year: f.year,
     runtime: f.runtime,
-    images: f.posterFile ? [`/posters/${f.posterFile}`] : [],
-    poster: f.posterFile ? `/posters/${f.posterFile}` : null,
+    // Mirror the real API shape: no top-level poster, and objects in images[]
+    // with the banner first — clients must pick 'poster' by coverType.
+    images: f.posterFile
+      ? [
+          { coverType: 'banner', url: `/posters/${f.posterFile}` },
+          { coverType: 'poster', url: `/posters/${f.posterFile}` },
+        ]
+      : [],
+    poster: null,
   };
 }
 
@@ -73,6 +81,15 @@ export function buildSonarrMock(): { app: FastifyInstance; state: SonarrMockStat
   app.get<{ Params: { file: string } }>('/posters/:file', async (req, reply) => {
     const fixture = SONARR_SHOWS.find((s) => s.posterFile === req.params.file);
     if (!fixture) return reply.code(404).send({ error: 'Not found' });
+    return reply
+      .type('image/svg+xml')
+      .send(posterSvg(fixture.title, `Sonarr mock · ${fixture.year ?? ''}`));
+  });
+
+  // API-key-authenticated cover endpoint; real Sonarr v4+ gates /MediaCover behind a session.
+  app.get<{ Params: { id: string; file: string } }>('/api/v3/mediacover/:id/:file', async (req, reply) => {
+    const fixture = SONARR_SHOWS.find((s) => s.id === Number(req.params.id));
+    if (!fixture?.posterFile) return reply.code(404).send({ error: 'Not found' });
     return reply
       .type('image/svg+xml')
       .send(posterSvg(fixture.title, `Sonarr mock · ${fixture.year ?? ''}`));

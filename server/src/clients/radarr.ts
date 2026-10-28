@@ -24,7 +24,11 @@ export function createRadarrClient(http: HttpClient): MediaClient {
         type: 'movie' as const,
         title: m.title,
         year: m.year ?? null,
-        posterPath: m.images?.find((i) => i.coverType === 'poster')?.url ?? m.poster ?? null,
+        // Radarr v5+ gates /MediaCover static files behind a browser session;
+        // the API-key-authenticated mediacover endpoint serves the same cover.
+        posterPath: m.images?.some((i) => i.coverType === 'poster') || m.poster
+          ? `/api/v3/mediacover/${m.id}/poster-500.jpg`
+          : null,
         overview: m.overview ?? '',
         meta: { imdbId: m.imdbId ?? null, runtime: m.runtime ?? null, genres: m.genres ?? [] },
       }));

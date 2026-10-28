@@ -19,9 +19,13 @@ export async function posterRoutes(app: FastifyInstance, ctx: AppContext): Promi
           signal: AbortSignal.timeout(10_000),
         });
         if (res.ok) {
-          const contentType = res.headers.get('content-type') ?? 'image/jpeg';
-          const buf = Buffer.from(await res.arrayBuffer());
-          return reply.type(contentType).header('cache-control', 'private, max-age=3600').send(buf);
+          const contentType = res.headers.get('content-type') ?? '';
+          // Sonarr/Radarr redirect unauthenticated static-file requests to the
+          // login page; never forward anything that isn't an image.
+          if (contentType.startsWith('image/')) {
+            const buf = Buffer.from(await res.arrayBuffer());
+            return reply.type(contentType).header('cache-control', 'private, max-age=3600').send(buf);
+          }
         }
       } catch {
         // Unreachable source or bad poster — fall through to the generated one.

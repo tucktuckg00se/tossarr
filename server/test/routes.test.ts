@@ -458,6 +458,24 @@ describe('posters', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('image/svg+xml');
   });
+
+  it('falls back to a generated SVG when upstream serves non-image content', async () => {
+    // Simulates Sonarr's 302-to-login-page behavior: the fetch "succeeds" but
+    // returns HTML, which must never be forwarded as a poster.
+    const sonarrId = await addSource('TV', 'sonarr', f.sonarrUrl, SONARR_API_KEY);
+    db.upsertItems(
+      f.db,
+      sonarrId,
+      [{ externalId: '42', type: 'show', title: 'HTML Impostor', year: null, posterPath: '/__mock/state', overview: '', meta: {} }],
+      new Date().toISOString(),
+    );
+    const res = await f.app.inject({ method: 'GET', url: `/api/posters/${sonarrId}/42` });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('image/svg+xml');
+    // The generated fallback SVG, not the upstream JSON body.
+    expect(res.payload).toContain('<svg');
+    expect(res.payload).not.toContain('"series"');
+  });
 });
 
 describe('manual sync', () => {
