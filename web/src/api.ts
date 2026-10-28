@@ -70,7 +70,10 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, { ...init, headers: { 'content-type': 'application/json', ...init?.headers } });
+  // Only advertise a JSON body when there actually is one — Fastify rejects
+  // content-type: application/json with an empty body (FST_ERR_CTP_EMPTY_JSON_BODY).
+  const hasBody = init?.body !== undefined;
+  const res = await fetch(path, hasBody ? { ...init, headers: { 'content-type': 'application/json', ...init?.headers } } : init);
   if (res.status === 204) return undefined as T;
 
   const body: unknown = await res.json().catch(() => null);
